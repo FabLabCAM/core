@@ -34,3 +34,7 @@ Le moteur traite la FAO 2,5D. La simulation discrétise le brut en grille de
 hauteurs ; ce n'est pas une simulation cinématique complète d'une machine.
 L'interface web exportée est une visualisation, pas un éditeur équivalent à egui.
 Le format de sauvegarde est décrit dans `file-formats.md`.
+
+La hauteur du texte utilise la métrique des capitales de la police. Si cette
+métrique est absente, elle est mesurée sur le glyphe `H` ; l'estimation à 70 % du
+cadratin reste le dernier recours pour les polices sans cette lettre.
