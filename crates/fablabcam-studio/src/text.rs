@@ -120,7 +120,14 @@ pub fn outlines(font: &[u8], text: &str, origin: (f64, f64), style: &TextStyle) 
         return Err("la hauteur du texte doit être > 0".into());
     }
     let face = ttf_parser::Face::parse(font, 0).map_err(|e| format!("police illisible : {e}"))?;
-    let cap = face.capital_height().filter(|h| *h > 0).map_or(face.units_per_em() as f64 * 0.7, |h| h as f64);
+    let cap = face.capital_height().filter(|h| *h > 0).map(f64::from).or_else(|| {
+        // Certaines polices n'indiquent pas leur hauteur de capitale (ex. DejaVu).
+        // Mesurer H évite que la hauteur usinée dépende d'une estimation du cadratin.
+        let glyph = face.glyph_index('H')?;
+        let bounds = face.glyph_bounding_box(glyph)?;
+        let height = f64::from(bounds.y_max) - f64::from(bounds.y_min);
+        (height > 0.0).then_some(height)
+    }).unwrap_or_else(|| face.units_per_em() as f64 * 0.7);
     let scale = style.height / cap;
     let line_h = (face.ascender() as f64 - face.descender() as f64 + face.line_gap() as f64) * scale * style.line_spacing;
     let mut shapes = Vec::new();
