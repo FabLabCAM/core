@@ -104,7 +104,7 @@ else:
     (deb / "DEBIAN" / "control").write_text(
         f"Package: fablabcam\nVersion: {version}\nArchitecture: {architecture}\n"
         "Maintainer: FabLabCAM (rhinosys) <5645423+rhinosys@users.noreply.github.com>\nSection: graphics\nPriority: optional\n"
-        "Depends: libc6 (>= 2.35), libgcc-s1, libstdc++6, libx11-6, libxcursor1, libxi6, libxrandr2, libxkbcommon0, libwayland-client0, libgl1\n"
+        "Depends: libc6 (>= 2.35), libgcc-s1, libstdc++6, libx11-6, libxcursor1, libxi6, libxrandr2, libxkbcommon0, libwayland-client0, libwayland-cursor0, libwayland-egl1, libegl1, libgl1, zenity\n"
         "Recommends: fonts-dejavu-core\nHomepage: https://fablabcam.github.io/docs/\n"
         "Description: FabLabCAM Studio, CAD/CAM and G-code tools\n 2D drawing, 2.5D machining, toolpaths and stock simulation.\n")
     run("dpkg-deb", "--build", "--root-owner-group", deb, out / f"{name}.deb")
