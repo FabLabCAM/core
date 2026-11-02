@@ -1,0 +1,6 @@
+FabLabCAM core
+Copyright 2026 FabLabCAM contributors
+
+This project is distributed under the Apache License, Version 2.0.
+Rust dependencies retain their respective licenses. Those licenses and any
+required notices must accompany binary distributions that include them.

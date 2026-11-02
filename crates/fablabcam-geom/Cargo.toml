@@ -1,0 +1,9 @@
+[package]
+name = "fablabcam-geom"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+cavalier_contours = "=0.3.0"

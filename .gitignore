@@ -1,0 +1,10 @@
+/target/
+/dist/
+.DS_Store
+.claude-flow/
+.env
+.env.*
+!.env.example
+*.lic
+*.pem
+*.key

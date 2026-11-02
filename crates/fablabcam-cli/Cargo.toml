@@ -1,0 +1,17 @@
+[package]
+name = "fablabcam-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "fablabcam"
+path = "src/main.rs"
+
+[dependencies]
+fablabcam-model = { path = "../fablabcam-model" }
+fablabcam-cam = { path = "../fablabcam-cam" }
+fablabcam-geom = { path = "../fablabcam-geom" }
+fablabcam-backplot = { path = "../fablabcam-backplot" }
+fablabcam-studio = { path = "../fablabcam-studio" }

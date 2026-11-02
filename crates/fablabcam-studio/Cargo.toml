@@ -1,0 +1,17 @@
+[package]
+name = "fablabcam-studio"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+fablabcam-geom = { path = "../fablabcam-geom" }
+fablabcam-model = { path = "../fablabcam-model" }
+fablabcam-cam = { path = "../fablabcam-cam" }
+fablabcam-backplot = { path = "../fablabcam-backplot" }
+roxmltree = "0.19"
+# lecture des contours de lettres (texte) ; version épinglée compatible Cargo 1.75
+# scripts d'automatisation ; version épinglée compatible Cargo 1.75
+rhai = "=1.17.1"
+ttf-parser = { version = "=0.20.0", default-features = false, features = ["std"] }

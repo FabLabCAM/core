@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = ["crates/fablabcam-geom", "crates/fablabcam-model", "crates/fablabcam-cam", "crates/fablabcam-backplot", "crates/fablabcam-cli", "crates/fablabcam-view", "crates/fablabcam-studio"]
+
+[workspace.package]
+version = "0.2.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/FabLabCAM/core"
+
+# winit 0.29 / objc2 : la vérification des signatures Objective-C (active seulement avec
+# debug-assertions) échoue sur NSScreen sous les macOS récents ; inutile d'y payer ce contrôle.
+[profile.dev.package.objc2]
+debug-assertions = false
+[profile.dev.package.icrate]
+debug-assertions = false
+[profile.dev.package.winit]
+debug-assertions = false

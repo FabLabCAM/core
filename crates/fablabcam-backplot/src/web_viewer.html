@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__ — backplot</title>
+<style>
+:root{--bg:#1e1f21;--fg:#d8dadd;--mute:#8b9097;--line:#34373b;--canvas:#fafafa}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:13px/1.4 -apple-system,system-ui,sans-serif}
+#app{display:grid;grid-template-columns:270px 1fr;height:100vh}
+#side{padding:10px 12px;overflow:auto;border-right:1px solid var(--line)}
+#side h1{font-size:17px;font-weight:500;margin:0 0 4px}
+#side h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);margin:14px 0 6px;border-top:1px solid var(--line);padding-top:10px}
+.stat{color:var(--mute)}
+label{display:flex;align-items:center;gap:6px;margin:3px 0}
+button{background:#2d3034;color:var(--fg);border:1px solid #44484d;border-radius:4px;padding:3px 8px;font:inherit;cursor:pointer}
+button:hover{background:#383c41}
+input[type=range]{width:100%}
+input[type=number]{width:70px;background:#2d3034;color:var(--fg);border:1px solid #44484d;border-radius:3px;padding:2px 4px}
+.row{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin:4px 0}
+#info{font-family:ui-monospace,Menlo,monospace;font-size:12px;margin-top:6px;white-space:pre-wrap;min-height:6.5em}
+#warn{color:#e8a03c;font-size:12px}
+.hint{color:var(--mute);font-size:11px;margin-top:10px}
+#main{display:grid;grid-template-rows:1fr 130px;min-width:0}
+#view,#prof{position:relative;min-height:0}
+canvas{display:block;width:100%;height:100%}
+#view{background:var(--canvas)}
+#prof{background:#fff;border-top:1px solid #999}
+</style>
+</head>
+<body>
+<div id="app">
+ <div id="side">
+  <h1 id="title"></h1>
+  <div class="stat" id="stats"></div>
+  <div id="warn"></div>
+  <h2>Affichage</h2>
+  <label><input type="checkbox" id="rapids" checked> rapides (pointillés)</label>
+  <label><input type="checkbox" id="arrows" checked> flèches de sens</label>
+  <label><input type="checkbox" id="plunges" checked> points de plongée</label>
+  <div class="row">Couleur :
+   <label><input type="radio" name="col" value="z" checked> profondeur</label>
+   <label><input type="radio" name="col" value="type"> type</label></div>
+  <button id="fit">Cadrer la vue (F)</button>
+  <h2>Profondeur Z</h2>
+  <label><input type="checkbox" id="zon"> n'afficher que les passes entre :</label>
+  <div class="row"><input type="number" id="zlo" step="0.1"> bas <input type="number" id="zhi" step="0.1"> haut</div>
+  <div class="row" id="levels"></div>
+  <h2>Animation</h2>
+  <label><input type="checkbox" id="follow" checked> suivre l'outil</label>
+  <div class="row"><button id="rew">|◀</button><button id="back">◀</button><button id="play">▶ lecture</button><button id="fwd">▶</button><button id="end">▶|</button></div>
+  <input type="range" id="pos" min="0" max="1000" value="1000">
+  <div class="row"><span id="posv" class="stat"></span></div>
+  <div class="row">vitesse <input type="number" id="speed" value="200" step="50"> mm/s</div>
+  <div id="info"></div>
+  <div class="hint">glisser : déplacer · molette : zoom · double-clic / F : cadrer<br>Espace : lecture · ← → : pas à pas · clic sur le profil : positionner</div>
+ </div>
+ <div id="main">
+  <div id="view"><canvas id="cv"></canvas></div>
+  <div id="prof"><canvas id="pf"></canvas></div>
+ </div>
+</div>
+<script>
+const DATA = __DATA__;
+"use strict";
+const $ = id => document.getElementById(id);
+const TAU = Math.PI * 2;
+// ---------- modèle ----------
+const segs = DATA.segs.map(a => ({k:a[0], f:[a[1],a[2],a[3]], t:[a[4],a[5],a[6]], c:a[7], ccw:!!a[8], feed:a[9], line:a[10], len:a[11]}));
+let total = 0;
+for (const s of segs) { s.cum = total; total += s.len;
+  if (s.c) { const a0=Math.atan2(s.f[1]-s.c[1],s.f[0]-s.c[0]), a1=Math.atan2(s.t[1]-s.c[1],s.t[0]-s.c[0]); let d=a1-a0;
+    if (s.ccw) { if (d<=1e-9) d+=TAU } else if (d>=-1e-9) d-=TAU; s.sw=d; s.r=Math.hypot(s.f[0]-s.c[0],s.f[1]-s.c[1]); s.a0=a0; } }
+function pt(s,u){ const z=s.f[2]+(s.t[2]-s.f[2])*u;
+  if (s.c){ const a=s.a0+s.sw*u; return [s.c[0]+s.r*Math.cos(a), s.c[1]+s.r*Math.sin(a), z]; }
+  return [s.f[0]+(s.t[0]-s.f[0])*u, s.f[1]+(s.t[1]-s.f[1])*u, z]; }
+function dir(s,u){ if (s.c){ const p=pt(s,u), rx=p[0]-s.c[0], ry=p[1]-s.c[1], l=Math.hypot(rx,ry)||1e-12, k=s.ccw?1:-1; return [-k*ry/l,k*rx/l]; }
+  const dx=s.t[0]-s.f[0], dy=s.t[1]-s.f[1], l=Math.hypot(dx,dy); return l>1e-12?[dx/l,dy/l]:null; }
+for (const s of segs) { // échantillonnage des arcs (flèche de corde ≤ 0,02 mm)
+  let n=1; if (s.c && s.r>1e-9){ const st=2*Math.acos(1-Math.min(0.02/s.r,1)); n=Math.min(720,Math.max(2,Math.ceil(Math.abs(s.sw)/Math.max(st,1e-3)))); }
+  s.pl=[]; for (let i=0;i<=n;i++) s.pl.push(pt(s,i/n)); }
+let lo=[1e18,1e18,1e18], hi=[-1e18,-1e18,-1e18];
+for (const s of segs) for (const p of s.pl) for (let k=0;k<3;k++){ lo[k]=Math.min(lo[k],p[k]); hi[k]=Math.max(hi[k],p[k]); }
+if (!segs.length){ lo=[0,0,0]; hi=[10,10,0]; }
+let zmin=1e18, zmax=-1e18; // altitudes de coupe : échelle des couleurs
+for (const s of segs){ if(s.k===0) continue; const zs = s.k===2?[Math.min(s.f[2],s.t[2])]:[s.f[2],s.t[2]]; for (const z of zs){ zmin=Math.min(zmin,z); zmax=Math.max(zmax,z); } }
+if (zmin>zmax){ zmin=lo[2]; zmax=hi[2]; }
+const levels=[...new Set(segs.filter(s=>(s.k===1||s.k===3)&&Math.abs(s.f[2]-s.t[2])<1e-9).map(s=>Math.round(s.f[2]*1000)))].sort((a,b)=>b-a).map(v=>v/1000);
+let rapidLen=0,cutLen=0,time=0; for (const s of segs){ if(s.k===0){rapidLen+=s.len; time+=s.len/5000*60;} else {cutLen+=s.len; time+=s.len/Math.max(s.feed,1)*60;} }
+const STOPS=[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
+function colZ(z){ const t=zmax-zmin>1e-12?Math.min(1,Math.max(0,(z-zmin)/(zmax-zmin))):1, x=t*4, i=Math.min(3,Math.floor(x)), f=x-i;
+  return `rgb(${[0,1,2].map(k=>Math.round(STOPS[i][k]+(STOPS[i+1][k]-STOPS[i][k])*f)).join(',')})`; }
+// ---------- état ----------
+const st={cx:(lo[0]+hi[0])/2, cy:(lo[1]+hi[1])/2, sc:1, upto:total, playing:false, hover:null};
+const cv=$('cv'), ctx=cv.getContext('2d'), pf=$('pf'), pctx=pf.getContext('2d');
+let W=0,H=0,PW=0,PH=0,dpr=1;
+function resize(){ dpr=window.devicePixelRatio||1;
+  for (const [c,box] of [[cv,$('view')],[pf,$('prof')]]){ c.width=box.clientWidth*dpr; c.height=box.clientHeight*dpr; }
+  W=cv.width/dpr; H=cv.height/dpr; PW=pf.width/dpr; PH=pf.height/dpr; draw(); }
+function fit(){ const w=Math.max(hi[0]-lo[0],1e-6), h=Math.max(hi[1]-lo[1],1e-6);
+  st.sc=Math.min((W-80)/w,(H-80)/h); st.cx=(lo[0]+hi[0])/2; st.cy=(lo[1]+hi[1])/2; }
+const X=x=>W/2+(x-st.cx)*st.sc, Y=y=>H/2-(y-st.cy)*st.sc;
+const inv=(px,py)=>[st.cx+(px-W/2)/st.sc, st.cy-(py-H/2)/st.sc];
+// ---------- dessin ----------
+function opts(){ return {rapids:$('rapids').checked, arrows:$('arrows').checked, plunges:$('plunges').checked,
+  byZ:document.querySelector('input[name=col]:checked').value==='z', zon:$('zon').checked, zlo:+$('zlo').value, zhi:+$('zhi').value}; }
+function draw(){
+  if(!W) return; const o=opts();
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H); ctx.fillStyle='#fafafa'; ctx.fillRect(0,0,W,H);
+  // grille
+  const raw=60/st.sc, mag=Math.pow(10,Math.floor(Math.log10(raw))); let step=mag; for (const m of [1,2,5,10]) { step=m*mag; if (step>=raw) break; }
+  ctx.lineWidth=1; ctx.strokeStyle='#e4e4e4'; ctx.beginPath();
+  const [x0,y1]=inv(0,0), [x1,y0]=inv(W,H);
+  for (let x=Math.ceil(x0/step)*step; x<=x1; x+=step){ ctx.moveTo(X(x),0); ctx.lineTo(X(x),H); }
+  for (let y=Math.ceil(y0/step)*step; y<=y1; y+=step){ ctx.moveTo(0,Y(y)); ctx.lineTo(W,Y(y)); }
+  ctx.stroke(); ctx.fillStyle='#999'; ctx.font='11px system-ui'; ctx.textAlign='right'; ctx.fillText(`grille ${+step.toPrecision(3)} mm`,W-8,H-8);
+  const limit=st.upto, seen=new Set(); let first=null,last=null, nextArrow=0; const arrowEvery=60/st.sc;
+  nextArrow=arrowEvery/2; const arrows=[];
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  for (const s of segs){
+    if (s.cum>=limit) break;
+    const u1 = s.cum+s.len>limit && s.len>0 ? (limit-s.cum)/s.len : 1;
+    if (s.k===0){ if(!o.rapids) continue; const a=pt(s,0), b=pt(s,u1); if (Math.hypot(a[0]-b[0],a[1]-b[1])<1e-9) continue;
+      ctx.setLineDash([5,4]); ctx.strokeStyle='#969696'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(X(a[0]),Y(a[1])); ctx.lineTo(X(b[0]),Y(b[1])); ctx.stroke(); ctx.setLineDash([]); continue; }
+    const zl=Math.min(s.f[2],s.t[2]), zh=Math.max(s.f[2],s.t[2]);
+    if (o.zon && (zl>o.zhi+1e-9 || zh<o.zlo-1e-9)) continue;
+    if (s.k===2){ if(o.plunges){ const key=Math.round(s.t[0]*100)+','+Math.round(s.t[1]*100); if(!seen.has(key)){ seen.add(key); dot(s.t[0],s.t[1],'#eb7814',3); } } continue; }
+    if (!first) first=s.f;
+    const n=s.pl.length-1, upto=Math.max(1,Math.ceil(n*u1));
+    ctx.lineWidth=2; ctx.setLineDash([]);
+    for (let i=0;i<upto;i++){ const a=s.pl[i]; let b=s.pl[i+1];
+      if (i===upto-1 && u1<1){ b=pt(s,u1); }
+      ctx.strokeStyle=o.byZ?colZ((a[2]+b[2])/2):(s.k===3?'#14966e':'#1e5ac8');
+      ctx.beginPath(); ctx.moveTo(X(a[0]),Y(a[1])); ctx.lineTo(X(b[0]),Y(b[1])); ctx.stroke(); }
+    last=pt(s,u1);
+    if (o.arrows && s.len>1e-9){ const end=s.cum+s.len*u1;
+      while (nextArrow<end && arrows.length<5000){ if(nextArrow>=s.cum){ const u=(nextArrow-s.cum)/s.len, d=dir(s,u); if(d){ const p=pt(s,u); arrows.push([p[0],p[1],d[0],d[1]]); } } nextArrow+=arrowEvery; }
+      if (nextArrow<s.cum) nextArrow=s.cum+arrowEvery/2; }
+  }
+  ctx.fillStyle='#191919';
+  for (const [x,y,dx,dy] of arrows){ const px=X(x), py=Y(y), ux=dx, uy=-dy, L=6, Wd=3.5;
+    ctx.beginPath(); ctx.moveTo(px+ux*L,py+uy*L); ctx.lineTo(px-ux*L-uy*Wd,py-uy*L+ux*Wd); ctx.lineTo(px-ux*L+uy*Wd,py-uy*L-ux*Wd); ctx.closePath(); ctx.fill(); }
+  if (first) dot(first[0],first[1],'#1ea03c',5);
+  if (last && st.upto>=total-1e-9) dot(last[0],last[1],'#c81e1e',5);
+  const cur=position(st.upto);
+  if (cur && st.upto<total-1e-9){ ctx.strokeStyle='#ff3c00'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(X(cur.p[0]),Y(cur.p[1]),7,0,TAU); ctx.stroke(); }
+  if (st.hover){ const h=st.hover; ctx.strokeStyle='#000'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(X(h.p[0]),Y(h.p[1]),6,0,TAU); ctx.stroke(); }
+  drawProfile(); updateInfo();
+}
+function dot(x,y,c,r){ ctx.fillStyle=c; ctx.beginPath(); ctx.arc(X(x),Y(y),r,0,TAU); ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.stroke(); }
+function position(d){ if(!segs.length) return null; let a=0,b=segs.length-1; while(a<b){ const m=(a+b+1)>>1; if(segs[m].cum<=d) a=m; else b=m-1; }
+  const s=segs[a], u=s.len>1e-12?Math.min(1,Math.max(0,(d-s.cum)/s.len)):1; return {s,i:a,p:pt(s,u),d:dir(s,u)}; }
+// ---------- profil Z ----------
+function drawProfile(){
+  const c=pctx; c.setTransform(dpr,0,0,dpr,0,0); c.fillStyle='#fff'; c.fillRect(0,0,PW,PH);
+  const m={l:8,r:8,t:14,b:14}, zr=Math.max(hi[2]-lo[2],1e-6), xs=d=>m.l+d/Math.max(total,1e-9)*(PW-m.l-m.r), ys=z=>m.t+(hi[2]-z)/zr*(PH-m.t-m.b);
+  c.strokeStyle='#4466cc'; c.lineWidth=1.2; c.beginPath(); let first=true;
+  for (const s of segs){ const pts=[[s.cum,s.f[2]],[s.cum+s.len,s.t[2]]]; for (const [d,z] of pts){ if(first){c.moveTo(xs(d),ys(z)); first=false;} else c.lineTo(xs(d),ys(z)); } }
+  c.stroke(); c.fillStyle='#777'; c.font='11px system-ui'; c.textAlign='left'; c.fillText(`Z ${hi[2]}`,m.l+2,11); c.fillText(`Z ${lo[2]}`,m.l+2,PH-3);
+  c.textAlign='right'; c.fillText(`${total.toFixed(0)} mm`,PW-m.r,PH-3);
+  c.strokeStyle='#e03c00'; c.lineWidth=1.5; c.beginPath(); c.moveTo(xs(st.upto),0); c.lineTo(xs(st.upto),PH); c.stroke(); }
+// ---------- info / panneau ----------
+function updateInfo(){
+  const h=st.hover, cur=position(st.upto); const src=DATA.source;
+  let t='';
+  if (h){ t=`survol : ${h.s.k===3?'Arc':'Droite'}, F${h.s.feed}\nX ${h.p[0].toFixed(3)}  Y ${h.p[1].toFixed(3)}  Z ${h.p[2].toFixed(3)}\nL${h.s.line}: ${(src[h.s.line-1]||'').trim()}`; }
+  else if (cur){ const s=cur.s, k=['Rapide','Droite','Plongée','Arc'][s.k], ang=cur.d?Math.round(Math.atan2(cur.d[1],cur.d[0])*180/Math.PI):null;
+    t=`X ${cur.p[0].toFixed(3)}\nY ${cur.p[1].toFixed(3)}\nZ ${cur.p[2].toFixed(3)}\n${k}${s.k?`, F${s.feed}`:''}${ang!==null?`, cap ${ang}°`:''}\nL${s.line}: ${(src[s.line-1]||'').trim()}`; }
+  $('info').textContent=t; $('posv').textContent=`${st.upto.toFixed(1)} / ${total.toFixed(1)} mm`; $('pos').value=total>0?Math.round(st.upto/total*1000):0;
+}
+$('title').textContent=DATA.title;
+$('stats').innerHTML=`${segs.length} mouvements<br>Coupe : ${cutLen.toFixed(1)} mm<br>Rapides : ${rapidLen.toFixed(1)} mm<br>Durée estimée : ${Math.floor(time/60)} min ${Math.round(time%60)} s`;
+$('warn').innerHTML=DATA.warnings.map(w=>'⚠ '+w.replace(/[<>&]/g,'')).join('<br>');
+$('zlo').value=Math.min(...levels,0); $('zhi').value=Math.max(...levels,0);
+const lv=$('levels'); lv.insertAdjacentHTML('beforeend','<span class="stat">Niveaux :</span> ');
+const mk=(txt,a,b)=>{ const bt=document.createElement('button'); bt.textContent=txt; bt.onclick=()=>{ $('zon').checked=a!==null; if(a!==null){$('zlo').value=a; $('zhi').value=b;} draw(); }; lv.appendChild(bt); };
+mk('tous',null,null); for (const l of levels) mk(l,l,l);
+// ---------- interactions ----------
+let drag=null;
+cv.addEventListener('mousedown',e=>{ drag={x:e.offsetX,y:e.offsetY,cx:st.cx,cy:st.cy}; });
+window.addEventListener('mouseup',()=>drag=null);
+cv.addEventListener('mousemove',e=>{
+  if (drag){ st.cx=drag.cx-(e.offsetX-drag.x)/st.sc; st.cy=drag.cy+(e.offsetY-drag.y)/st.sc; st.hover=null; draw(); return; }
+  const [mx,my]=inv(e.offsetX,e.offsetY); let best=null, bd=8/st.sc; const o=opts();
+  for (const s of segs){ if(s.k===0||s.k===2||s.cum>st.upto) continue; if(o.zon&&(Math.min(s.f[2],s.t[2])>o.zhi+1e-9||Math.max(s.f[2],s.t[2])<o.zlo-1e-9)) continue;
+    for (let i=0;i<s.pl.length-1;i++){ const a=s.pl[i], b=s.pl[i+1], dx=b[0]-a[0], dy=b[1]-a[1], l2=dx*dx+dy*dy, u=l2>0?Math.min(1,Math.max(0,((mx-a[0])*dx+(my-a[1])*dy)/l2)):0,
+        qx=a[0]+dx*u, qy=a[1]+dy*u, d=Math.hypot(mx-qx,my-qy); if(d<bd){ bd=d; best={s,p:[qx,qy,a[2]+(b[2]-a[2])*u]}; } } }
+  st.hover=best; draw(); });
+cv.addEventListener('mouseleave',()=>{ st.hover=null; draw(); });
+cv.addEventListener('wheel',e=>{ e.preventDefault(); const [mx,my]=inv(e.offsetX,e.offsetY), f=Math.exp(-e.deltaY*0.0015);
+  st.sc*=f; st.cx=mx-(e.offsetX-W/2)/st.sc; st.cy=my+(e.offsetY-H/2)/st.sc; draw(); },{passive:false});
+cv.addEventListener('dblclick',()=>{ fit(); draw(); });
+$('fit').onclick=()=>{ fit(); draw(); };
+for (const id of ['rapids','arrows','plunges','zon','zlo','zhi']) $(id).addEventListener('input',draw);
+for (const r of document.querySelectorAll('input[name=col]')) r.addEventListener('input',draw);
+function seek(d){ st.upto=Math.min(total,Math.max(0,d)); if($('follow').checked){ const c=position(st.upto); if(c){ const [px,py]=[X(c.p[0]),Y(c.p[1])]; if(px<60||px>W-60||py<60||py>H-60){ st.cx=c.p[0]; st.cy=c.p[1]; } } } draw(); }
+$('pos').addEventListener('input',e=>{ st.playing=false; $('play').textContent='▶ lecture'; seek(+e.target.value/1000*total); });
+const stepTo=dir=>{ st.playing=false; $('play').textContent='▶ lecture'; const c=position(st.upto); let i=c?c.i:0; i=dir>0?Math.min(segs.length-1,i+(st.upto>=segs[i].cum+segs[i].len-1e-9?1:0)):Math.max(0,i-(st.upto<=segs[i].cum+1e-9?1:0)); seek(dir>0?segs[i].cum+segs[i].len:segs[i].cum); };
+$('fwd').onclick=()=>stepTo(1); $('back').onclick=()=>stepTo(-1);
+$('rew').onclick=()=>{ st.playing=false; $('play').textContent='▶ lecture'; seek(0); }; $('end').onclick=()=>{ st.playing=false; $('play').textContent='▶ lecture'; seek(total); };
+const toggle=()=>{ st.playing=!st.playing; if(st.playing&&st.upto>=total) st.upto=0; $('play').textContent=st.playing?'❚❚ pause':'▶ lecture'; last=performance.now(); requestAnimationFrame(tick); };
+$('play').onclick=toggle;
+let last=0; function tick(t){ if(!st.playing) return; const dt=(t-last)/1000; last=t; seek(st.upto+dt*(+$('speed').value||200)); if(st.upto>=total){ st.playing=false; $('play').textContent='▶ lecture'; return; } requestAnimationFrame(tick); }
+pf.addEventListener('mousedown',e=>{ const m=8; seek((e.offsetX-m)/(PW-2*m)*total); });
+pf.addEventListener('mousemove',e=>{ if(e.buttons) { const m=8; seek((e.offsetX-m)/(PW-2*m)*total); } });
+window.addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'&&e.target.type!=='checkbox'&&e.target.type!=='radio'&&e.target.type!=='range') return;
+  if(e.key===' '){ e.preventDefault(); toggle(); } else if(e.key==='f'||e.key==='F'){ fit(); draw(); } else if(e.key==='ArrowRight') stepTo(1); else if(e.key==='ArrowLeft') stepTo(-1); });
+window.addEventListener('resize',resize);
+// paramètres d'URL : ?at=0.45 (fraction du trajet), ?play=1
+const q=new URLSearchParams(location.search); if(q.has('at')) st.upto=Math.min(1,Math.max(0,+q.get('at')))*total;
+resize(); fit(); draw(); if(q.get('play')==='1') toggle();
+</script>
+</body>
+</html>

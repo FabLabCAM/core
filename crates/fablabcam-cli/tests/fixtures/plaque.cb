@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CADFile>
+<Layers>
+<Layer Name="Contour">
+<pline Closed="true"><Pts><Point3D X="0" Y="0" Z="0"/><Point3D X="100" Y="0" Z="0"/><Point3D X="100" Y="50" Z="0"/><Point3D X="0" Y="50" Z="0"/></Pts></pline>
+</Layer>
+<Layer Name="Trous">
+<circle><Center X="10" Y="10" Z="0"/><Radius>2</Radius></circle>
+<circle><Center X="90" Y="40" Z="0"/><Radius>2</Radius></circle>
+</Layer>
+</Layers>
+</CADFile>

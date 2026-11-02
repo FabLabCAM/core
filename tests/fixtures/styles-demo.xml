@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0
+     Original FabLabCAM test data. Values exercise parser and inheritance behaviour;
+     they are not recommended machining settings or a redistributed vendor library. -->
+<Styles>
+  <CAMStyle Name="">
+    <CutFeedrate state="Value">800</CutFeedrate>
+    <PlungeFeedrate state="Value">300</PlungeFeedrate>
+    <DepthIncrement state="Value">0.4</DepthIncrement>
+    <SpindleDirection state="Value">CW</SpindleDirection>
+    <ToolNumber state="Auto">99</ToolNumber>
+    <MaxCrossoverDistance state="Value">0.7</MaxCrossoverDistance>
+  </CAMStyle>
+  <CAMStyle Name="cutout">
+    <Style />
+    <LeadInMove state="Value"><LeadInType>Spiral</LeadInType></LeadInMove>
+  </CAMStyle>
+  <CAMStyle Name="cutout+tabs">
+    <Style>cutout</Style>
+    <HoldingTabs state="Value">
+      <TabMethod>Automatic</TabMethod>
+      <Width>1.5</Width><Height>1.5</Height>
+      <MinimumTabs>3</MinimumTabs><MaximumTabs>6</MaximumTabs>
+      <TabDistance>30</TabDistance><SizeThreshold>15</SizeThreshold>
+      <TabStyle>Triangle</TabStyle>
+    </HoldingTabs>
+  </CAMStyle>
+  <CAMStyle Name="cutout+tabs+corners">
+    <Style>cutout+tabs</Style>
+    <CornerOvercut state="Value">True</CornerOvercut>
+  </CAMStyle>
+  <CAMStyle Name="engrave">
+    <Style />
+    <TargetDepth state="Value">-0.3</TargetDepth>
+    <InsideOutside state="Value">Inside</InsideOutside>
+  </CAMStyle>
+  <CAMStyle Name="demo-aluminium">
+    <Style />
+    <ToolDiameter state="Value">4</ToolDiameter>
+    <CutFeedrate state="Value">400</CutFeedrate>
+    <SpindleSpeed state="Value">21000</SpindleSpeed>
+    <StockSurface state="Value">10</StockSurface>
+    <ClearancePlane state="Value">40</ClearancePlane>
+  </CAMStyle>
+  <CAMStyle Name="tangent-exit">
+    <Style />
+    <LeadOutMove state="Value"><LeadInType>Tangent</LeadInType><TangentRadius>2</TangentRadius></LeadOutMove>
+  </CAMStyle>
+</Styles>

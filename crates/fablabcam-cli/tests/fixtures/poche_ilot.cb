@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CADFile>
+<Layers>
+<Layer Name="Poche">
+<pline Closed="true"><Pts><Point3D X="0" Y="0" Z="0"/><Point3D X="80" Y="0" Z="0"/><Point3D X="80" Y="60" Z="0"/><Point3D X="0" Y="60" Z="0"/></Pts></pline>
+<circle><Center X="40" Y="30" Z="0"/><Radius>8</Radius></circle>
+</Layer>
+</Layers>
+</CADFile>

@@ -1,0 +1,40 @@
+[package]
+name = "fablabcam-view"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "fablabcam-view"
+path = "src/main.rs"
+
+[[bin]]
+name = "fablabcam-studio-ui"
+path = "src/studio.rs"
+
+[features]
+# Wayland natif sous Linux ; la compilation croisée depuis macOS s'en passe (X11, et XWayland sous Wayland)
+default = ["wayland"]
+wayland = ["eframe/wayland"]
+
+[dependencies]
+fablabcam-studio = { path = "../fablabcam-studio" }
+fablabcam-model = { path = "../fablabcam-model" }
+fablabcam-cam = { path = "../fablabcam-cam" }
+fablabcam-geom = { path = "../fablabcam-geom" }
+fablabcam-backplot = { path = "../fablabcam-backplot" }
+fablabcam-cli = { path = "../fablabcam-cli" }
+eframe = { version = "0.25", default-features = false, features = ["glow", "default_fonts", "x11"] }
+
+# même version que celle de winit 0.29 : rien de nouveau n'est téléchargé
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "=0.4.1"
+
+# eframe 0.25 utilise winapi sans en activer les fonctions nécessaires sous Windows
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["winuser", "windef"] }
+
+# wayland-cursor 0.31.0 (épinglé pour Cargo 1.75) utilise nix sans en activer les fonctions de fichiers
+[target.'cfg(target_os = "linux")'.dependencies]
+nix = { version = "0.26", default-features = false, features = ["fs", "mman"] }
