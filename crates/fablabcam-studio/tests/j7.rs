@@ -146,7 +146,9 @@ fn conges_sur_les_coins() {
     // aire = 100 - 4 × (r² - πr²/4)
     let expected = 100.0 - 4.0 * (4.0 - std::f64::consts::PI);
     assert!((area(&f) - expected).abs() < 1e-6, "{}", area(&f));
-    assert_eq!(bounds(&f), ([0.0, 0.0], [10.0, 10.0]));
+    // Les arcs peuvent dépasser zéro de quelques ULP selon la plateforme.
+    let (lo, hi) = bounds(&f);
+    assert!(close(lo[0], 0.0) && close(lo[1], 0.0) && close(hi[0], 10.0) && close(hi[1], 10.0), "{lo:?} {hi:?}");
     // rayon trop grand pour les segments : aucun coin
     assert_eq!(cad::fillet(&rect, 6.0).unwrap().1, 0);
     // ligne brisée ouverte : seul le coin intérieur
