@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><meta charset="utf-8">
+<title>FabLabCAM — third-party licenses</title>
+<style>body{font:16px system-ui;max-width:960px;margin:3rem auto;padding:1rem}pre{white-space:pre-wrap;overflow-wrap:anywhere}section{border-top:1px solid #bbb;margin-top:2rem}</style>
+<h1>FabLabCAM — third-party licenses</h1>
+<p>These components retain their original licenses. FabLabCAM sources are licensed under Apache-2.0.</p>
+<p>The unmodified smartstring sources (MPL-2.0) are included in third-party-sources. All Rust package sources can also be obtained from <a href="https://crates.io">crates.io</a> at the versions listed below.</p>
+<p>Embedded font notices are included in font-licenses, including the <a href="font-licenses/UFL.txt">Ubuntu Font Licence</a>.</p>
+{{#each licenses}}
+<section><h2>{{name}}</h2><ul>
+{{#each used_by}}<li><a href="https://crates.io/crates/{{crate.name}}/{{crate.version}}">{{crate.name}} {{crate.version}}</a></li>{{/each}}
+</ul><pre>{{text}}</pre></section>
+{{/each}}
+</html>
