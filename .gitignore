@@ -8,3 +8,4 @@
 *.lic
 *.pem
 *.key
+__pycache__/

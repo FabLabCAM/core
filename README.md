@@ -5,6 +5,9 @@ G-code, visualisation des trajectoires et simulation de matière.
 
 Dépôt : https://github.com/FabLabCAM/core · Licence : [Apache-2.0](LICENSE).
 
+[Documentation du produit](https://fablabcam.github.io/docs/) ·
+[Téléchargements](https://github.com/FabLabCAM/core/releases)
+
 ## Architecture
 
 | Crate | Responsabilité |
