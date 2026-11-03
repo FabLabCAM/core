@@ -192,5 +192,6 @@
       "M9"
     ],
     "table": {}
-  }
+  },
+  "semantics": "mach3_mill"
 }

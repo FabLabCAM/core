@@ -33,7 +33,7 @@ fn report(body: &str, p: &Profile) -> Report { validate(&format!("{PRE}{body}\nM
 }
 #[test] fn conversion_preserves_geometry_and_refuses_loss() {
     let from = demo(); let mut to = from.clone(); to.id = "custom-controller".into();
-    to.controller.dialect = "custom-literal".into(); to.format.line_numbers = LineNumbers::Required;
+    to.controller.dialect = "custom-literal".into(); to.semantics = DialectSemantics::Rs274Mill; to.format.line_numbers = LineNumbers::Required;
     to.format.comments = vec![";".into()]; to.format.uppercase = true;
     let source = format!("{PRE}(test)\ng71\ng1 x10 F100\nM30\n");
     let c = convert(&source,&from,&to);
@@ -45,4 +45,15 @@ fn report(body: &str, p: &Profile) -> Report { validate(&format!("{PRE}{body}\nM
     assert!(convert(&format!("{PRE}M6\nM30"),&from,&to).output.is_none());
     assert!(convert(&format!("{PRE}(MSG,hello)\nM30"),&from,&to).output.is_none());
     to.work_offsets_mm.insert("G54".into(),[1.,0.,0.]); assert!(convert(&source,&from,&to).output.is_none());
+}
+
+#[test] fn unit_aliases_require_the_mach3_semantics_model() {
+    let mut p = demo(); p.semantics = DialectSemantics::Rs274Mill;
+    let source = format!("{PRE}G1 X1 F100\nG70 X2\nM30");
+    let r = validate(&source,&p);
+    assert_eq!(r.status,Status::Incomplete);
+    assert_eq!(r.statistics.bounds_max_mm.unwrap()[0],1.);
+    assert!(convert(&source,&p,&demo()).output.is_none());
+    let mut json = serde_json::to_value(p).unwrap(); json["semantics"] = "turning".into();
+    assert!(Profile::from_json(&json.to_string()).is_err());
 }

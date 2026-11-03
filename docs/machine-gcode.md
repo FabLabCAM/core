@@ -21,7 +21,10 @@ let report = validate(&std::fs::read_to_string("program.nc")?, &profile);
 println!("{:?}", report.status);
 ```
 
-Le schéma JSON 1 refuse les propriétés inconnues. Distances, origines et positions
+Le schéma JSON 1 refuse les propriétés inconnues. `semantics` choisit explicitement
+le modèle `mach3_mill` ou `rs274_mill` ; le nom commercial du contrôleur ne
+détermine pas le sens des codes. G70/G71 ne sont interprétés comme unités que
+dans le modèle Mach3 Mill. Ces modèles ne couvrent pas les cycles de tournage. Distances, origines et positions
 sont en mm, vitesses linéaires en mm/min, broche en tr/min. Les métadonnées
 rotatives utilisent degrés et degrés/min ; la cinématique rotative n'est pas
 interprétée. `initial_position_mm` et les bornes sont dans le repère machine ;

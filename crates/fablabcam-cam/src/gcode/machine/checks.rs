@@ -17,7 +17,7 @@ pub(crate) fn block(b: &Block, p: &Profile, r: &mut Report, s: &mut State) {
             let list = if w.letter == 'G' { &p.gcodes } else { &p.mcodes };
             if !list.permits(&code) {
                 r.error("unsupported_code", b.line, w.column, Some(code.clone()), "Code interdit ou absent de la liste autorisée"); s.poisoned = true;
-            } else if !interpreted(&code) {
+            } else if !interpreted(&code) || (["G70","G71"].contains(&code.as_str()) && p.semantics != super::DialectSemantics::Mach3Mill) {
                 r.partial("unmodeled_code", b.line, w.column, Some(code.clone()), "Code reconnu, sémantique non interprétée : statistiques partielles"); s.poisoned = true;
             }
         } else if "XYZABC".contains(w.letter) {

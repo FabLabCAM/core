@@ -12,6 +12,8 @@ pub struct Profile {
     pub description: String,
     pub location: Option<String>,
     pub machine_kind: String,
+    /// Selects the meaning of codes; controller names alone never define semantics.
+    pub semantics: DialectSemantics,
     pub controller: Controller,
     pub sources: Vec<String>,
     pub axes: BTreeMap<char, Axis>,
@@ -31,6 +33,10 @@ pub struct Profile {
     pub safety: Safety,
     pub tools: Tools,
 }
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DialectSemantics { Mach3Mill, Rs274Mill }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
