@@ -417,6 +417,8 @@ pub struct Stock {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Project {
+    /// Explicit machine snapshot for furniture CAM; persisted as a FabLabCAM XML extension.
+    pub machine_profile: Option<fablabcam_cam::gcode::machine::Profile>,
     pub shapes: Vec<Shape>,
     pub tools: Vec<Tool>,
     pub ops: Vec<Operation>,

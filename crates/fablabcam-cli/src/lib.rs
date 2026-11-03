@@ -1,6 +1,7 @@
 //! Interface en ligne de commande de FabLabCAM (logique testable, `main.rs` n'est qu'un appel).
 
 pub mod machine;
+pub mod furniture;
 
 use fablabcam_cam::{drill, emit, pocket_shapes, profile, LeadKind, MillingDirection, Params, Post, Side, StyleLibrary, TabMethod, TabStyle, Toolpath};
 use fablabcam_geom::{Pline, PlineSource};
@@ -13,6 +14,7 @@ fablabcam — FAO 2,5D en Rust (dessins XML .cb, DXF et SVG)
 USAGE
   fablabcam version                              version du produit
   fablabcam machine help                         profils, validation et archives G-code
+  fablabcam furniture help                       modèles, meubles et dossiers de fabrication
   fablabcam info   <fichier.cb>
   fablabcam styles <styles.xml>
   fablabcam gcode  <fichier.cb> --op <profile-outside|profile-inside|profile-on|pocket|drill> [options]
@@ -423,6 +425,7 @@ fn build(a: &Args) -> Result<String, String> {
         }
         None => studio.gcode(),
     };
+    fablabcam_studio::furniture::check_cam_export(&studio, &g)?;
     match a.get("-o") {
         Some(path) => {
             std::fs::write(path, &g).map_err(|e| format!("{path} : {e}"))?;
@@ -455,6 +458,7 @@ fn script(a: &Args) -> Result<String, String> {
 
 /// Exécute la commande et renvoie le texte à afficher (ou écrit dans `-o`).
 pub fn run(args: &[String]) -> Result<String, String> {
+    if args.first().is_some_and(|s| s == "furniture") { return furniture::run(&args[1..]); }
     if args == ["version"] || args == ["--version"] { return Ok(format!("FabLabCAM {}\n", env!("CARGO_PKG_VERSION"))); }
     if args.first().is_some_and(|s| s == "machine") {
         let out = machine::run(&args[1..])?;
