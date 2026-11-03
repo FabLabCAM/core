@@ -1,0 +1,108 @@
+use super::{Document, FurnitureUi, Pending};
+use eframe::egui;
+use fablabcam_studio::furniture::panels;
+
+impl FurnitureUi {
+    pub(super) fn editor(&mut self, ui: &mut egui::Ui) {
+        let Some(mut draft) = self.draft.take() else {
+            ui.heading("Choisissez un modèle ou un meuble");
+            ui.label("Créez, personnalisez, puis préparez vos dalles pour la CNC.");
+            return;
+        };
+        let previous = draft.document.clone();
+        ui.heading(if draft.document.is_template() {
+            "Éditeur de modèle"
+        } else {
+            "Assistant guidé"
+        });
+        ui.label("Nom");
+        ui.text_edit_singleline(draft.document.name_mut());
+        ui.horizontal_wrapped(|ui| {
+            if ui
+                .add_enabled(!draft.dirty(), egui::Button::new("Dupliquer"))
+                .on_hover_text("Enregistrez le document avant de le dupliquer")
+                .clicked()
+            {
+                self.pending = Some(Pending::Duplicate);
+            }
+            ui.checkbox(&mut self.exploded, "Vue éclatée");
+        });
+        if let Document::Template(t) = &mut draft.document {
+            super::fields::dimensions(ui, &mut t.defaults);
+            super::fields::limits(ui, t);
+            ui.weak(format!(
+                "Révision actuelle : {} · une modification enregistrée crée la révision suivante",
+                t.revision
+            ));
+        } else {
+            ui.horizontal_wrapped(|ui| {
+                for (i, name) in ["1. Meuble", "2. Matière & CNC", "3. Découpe", "4. Dossier"]
+                    .iter()
+                    .enumerate()
+                {
+                    ui.selectable_value(&mut self.step, i, *name);
+                }
+            });
+            if let Document::Furniture(f) = &mut draft.document {
+                match self.step {
+                    0 => super::fields::dimensions(ui, &mut f.dimensions),
+                    1 => super::fields::setup(ui, &mut f.setup, &self.machines),
+                    2 => self.layout_panel(ui, f),
+                    _ => self.dossier_panel(ui, f),
+                }
+            }
+        }
+        if let Err(e) = draft.document.check() {
+            ui.colored_label(egui::Color32::LIGHT_RED, e);
+        }
+        if self.step < 2 || draft.document.is_template() {
+            super::preview::assembly(
+                ui,
+                draft.document.template(),
+                draft.document.dimensions(),
+                self.exploded,
+                260.0,
+            );
+            if let Ok(parts) = panels(draft.document.template(), draft.document.dimensions()) {
+                egui::Grid::new("furniture-cut-list")
+                    .striped(true)
+                    .show(ui, |ui| {
+                        ui.strong("Repère");
+                        ui.strong("Pièce");
+                        ui.strong("Cotes finies (mm)");
+                        ui.end_row();
+                        for p in parts {
+                            ui.label(p.id);
+                            ui.label(p.name);
+                            ui.label(format!("{} × {} × {}", p.width, p.height, p.thickness));
+                            ui.end_row();
+                        }
+                    });
+            }
+        }
+        if !draft.document.is_template() {
+            ui.horizontal(|ui| {
+                if ui
+                    .add_enabled(self.step > 0, egui::Button::new("Précédent"))
+                    .clicked()
+                {
+                    self.step -= 1;
+                }
+                if ui
+                    .add_enabled(self.step < 3, egui::Button::new("Suivant"))
+                    .clicked()
+                {
+                    self.step += 1;
+                }
+            });
+        }
+        let editing = ui.ctx().wants_keyboard_input() || ui.input(|i| i.pointer.any_down());
+        draft.record_group(previous, editing);
+        self.draft = Some(draft);
+        // The duplicate prompt uses the same unsaved-document protection as navigation.
+        if matches!(self.pending, Some(Pending::Duplicate)) && !self.dirty() {
+            self.pending = None;
+            self.execute(Pending::Duplicate);
+        }
+    }
+}

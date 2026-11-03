@@ -97,6 +97,11 @@ impl MachineUi {
     pub fn dirty(&self) -> bool {
         self.library.dirty()
     }
+    pub fn selected_profile(&self) -> Option<Profile> {
+        let draft = self.library.draft.as_ref()?;
+        draft.ready().ok()?;
+        Some(draft.profile.clone())
+    }
     pub fn open(&mut self) {
         self.open = true;
         if !self.loaded && self.available {
