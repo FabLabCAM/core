@@ -1,5 +1,26 @@
 # Notes de version
 
+## 0.4.0 — 2026-11-03
+
+### Atelier des profils machine dans le Studio — [#11](https://github.com/FabLabCAM/core/issues/11)
+
+- Espace **Profils machine · Atelier** : bibliothèque locale, édition, duplication,
+  import/export JSON et récapitulatif des courses renseignées.
+- Création guidée en quatre étapes : identité, axes et sécurité, broche et outils,
+  vérification. Les limites inconnues restent absentes ; un profil peut être
+  enregistré avec l'état « À configurer » pour être complété plus tard.
+- Formulaires G-code et JSON complet pour conserver les paramètres avancés.
+  Un JSON invalide n'altère pas les champs et empêche l'enregistrement/export.
+- Confirmation des brouillons, import avec copie ou remplacement explicite,
+  refus d'écrasement des exports et détection des modifications concurrentes.
+- Protection des brouillons lors de la fermeture, y compris « Quitter » sur macOS.
+- Guide illustré avec des captures réelles du Studio et suivi de l'issue.
+
+Le schéma JSON reste en version 1 et le magasin est partagé avec la CLI.
+Les états de configuration ne valident ni une machine physique ni un programme.
+La validation, la conversion et les archives G-code restent accessibles en CLI/API.
+Les profils ne sélectionnent pas automatiquement un post-processeur `.cbpp`.
+
 ## 0.3.0 — 2026-11-03
 
 ### Profils de machine et gestion du G-code — [#9](https://github.com/FabLabCAM/core/issues/9)

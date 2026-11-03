@@ -1,4 +1,4 @@
-# Profils de machine et G-code (v0.3.0)
+# Profils de machine et G-code
 
 Implémente l'[issue #9](https://github.com/FabLabCAM/core/issues/9).
 Le [guide utilisateur](https://fablabcam.github.io/docs/guide/machines/) détaille
@@ -7,6 +7,10 @@ explique les frontières des modules.
 
 ## API et composants
 
+- Depuis 0.4.0 : `fablabcam_studio::machine_profiles` gère les brouillons et
+  `fablabcam-view/src/machine_ui` les affiche dans l'Atelier. Voir
+  [l'ADR du Studio](adr/0002-machine-profile-studio.md) et le
+  [guide illustré](https://fablabcam.github.io/docs/guide/profils-studio/).
 - `fablabcam_cam::gcode::machine::{Profile, parse, validate, convert}` : moteur pur.
 - `fablabcam_studio::gcode_store::Store` : CRUD des profils et révisions locales.
 - `fablabcam_cli::machine::run` : sortie JSON et code de retour ; la commande
