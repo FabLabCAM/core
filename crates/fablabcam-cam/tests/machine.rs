@@ -47,7 +47,7 @@ fn valid(body: &str) -> Report {
     assert!(has(&validate(&program("G1 X1 F600\nG20 X2"),&demo()),"feed_missing"));
 }
 #[test] fn modal_conflicts_duplicate_words_and_line_numbers() {
-    for body in ["G0 G1 X1 F100","G20 G21","G90 G91","G0 X1 X2","M3 M5 S1000","M7 M9","M3 M3 S1000","G90.1 G91.1"] {
+    for body in ["G53 G53 G0 X1","G0 G1 X1 F100","G20 G21","G90 G91","G0 X1 X2","M3 M5 S1000","M7 M9","M3 M3 S1000","G90.1 G91.1"] {
         let r = validate(&program(body),&demo()); assert_eq!(r.status,Status::Invalid,"{body}");
     }
     for body in ["N-1 G0 X1","N000001 G0 X1","N100000 G0 X1","G0 N1 X1","T1.5"] {

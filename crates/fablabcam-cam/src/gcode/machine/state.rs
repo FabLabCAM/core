@@ -49,6 +49,7 @@ fn plane(c: &str) -> [usize;3] {
 /// Modal group membership from the Mill manual. Used to reject ambiguous blocks.
 pub(crate) fn group(c: &str) -> Option<u8> {
     Some(match c {
+        "G4"|"G10"|"G28"|"G28.1"|"G30"|"G52"|"G53"|"G92"|"G92.1"|"G92.2"|"G92.3" => 0,
         "G0"|"G1"|"G2"|"G3"|"G12"|"G13"|"G31"|"G73"|"G80"|"G81"|"G82"|"G83"|"G84"|"G85"|"G86"|"G87"|"G88"|"G89" => 1,
         "G17"|"G18"|"G19" => 2, "G90"|"G91" => 3, "G90.1"|"G91.1" => 4,
         "G93"|"G94"|"G95" => 5, "G20"|"G21"|"G70"|"G71" => 6,
