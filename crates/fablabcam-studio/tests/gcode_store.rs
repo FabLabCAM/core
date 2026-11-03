@@ -3,7 +3,18 @@ use fablabcam_studio::gcode_store::Store;
 use std::{fs, path::PathBuf};
 struct Temp(PathBuf);
 impl Temp {
-    fn new() -> Self { let p = std::env::temp_dir().join(format!("fablabcam-store-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos())); Self(p) }
+    fn new() -> Self {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static NEXT: AtomicU64 = AtomicU64::new(0);
+        // Clock resolution alone cannot isolate tests running in parallel.
+        let p = std::env::temp_dir().join(format!(
+            "fablabcam-store-{}-{}-{}", std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&p).unwrap();
+        Self(p)
+    }
 }
 impl Drop for Temp { fn drop(&mut self) { let _ = fs::remove_dir_all(&self.0); } }
 fn demo() -> Profile { Profile::from_json(include_str!("../../../profiles/mach3-mill-demo.json")).unwrap() }

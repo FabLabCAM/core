@@ -1,7 +1,18 @@
 use std::{fs, path::PathBuf, process::{Command,Output}};
 struct Temp(PathBuf);
 impl Temp {
-    fn new() -> Self { let p = std::env::temp_dir().join(format!("fablabcam-cli-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos())); fs::create_dir(&p).unwrap(); Self(p) }
+    fn new() -> Self {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static NEXT: AtomicU64 = AtomicU64::new(0);
+        // Clock resolution alone cannot isolate tests running in parallel.
+        let p = std::env::temp_dir().join(format!(
+            "fablabcam-cli-{}-{}-{}", std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&p).unwrap();
+        Self(p)
+    }
     fn run(&self,args: &[&str]) -> Output { Command::new(env!("CARGO_BIN_EXE_fablabcam")).current_dir(&self.0).arg("machine").args(args).output().unwrap() }
 }
 impl Drop for Temp { fn drop(&mut self) { let _ = fs::remove_dir_all(&self.0); } }

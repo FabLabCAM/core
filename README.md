@@ -52,7 +52,12 @@ cargo run --locked -p fablabcam-cli -- web demo -o studio.html
 Les valeurs des fixtures servent aux tests ; adapter les réglages à la machine,
 au matériau et à l'outil avant tout usinage réel.
 
-## Profils de machine (0.3.0)
+## Profils de machine (0.4.0)
+
+Dans le Studio, ouvrez **Profils machine** ou **Outils → Profils machine · Atelier**.
+Créez un profil avec l'assistant, modifiez ses paramètres, dupliquez-le ou
+importez/exportez son JSON. Le [guide Atelier](https://fablabcam.github.io/docs/guide/profils-studio/)
+illustre le parcours et les confirmations. Les profils sont indépendants du dessin.
 
 La commande `fablabcam machine` analyse, valide, convertit et archive les G-code
 avec un profil JSON. Voir le [guide technique](docs/machine-gcode.md),

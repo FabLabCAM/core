@@ -84,6 +84,23 @@ pub fn with_extension(p: PathBuf, ext: &str) -> PathBuf {
 
 // ───────────────────────────── Préférences ─────────────────────────────
 
+/// Local machine library, shared with the CLI by passing this path as --store.
+/// The explicit override also isolates UI tests and public documentation captures.
+pub fn machine_store() -> Option<PathBuf> {
+    if let Some(p)=std::env::var_os("FABLABCAM_MACHINE_STORE").filter(|p|!p.is_empty()) {
+        return Some(PathBuf::from(p));
+    }
+    let home=std::env::var_os("HOME").map(PathBuf::from);
+    let base=if cfg!(target_os="macos") {
+        home?.join("Library/Application Support/FabLabCAM")
+    } else if cfg!(windows) {
+        PathBuf::from(std::env::var_os("LOCALAPPDATA").or_else(||std::env::var_os("APPDATA"))?).join("FabLabCAM")
+    } else {
+        std::env::var_os("XDG_DATA_HOME").map(PathBuf::from).or_else(||home.map(|h|h.join(".local/share")))?.join("fablabcam")
+    };
+    Some(base.join("machines"))
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Prefs {
     pub snap: bool,
@@ -182,9 +199,19 @@ pub mod finder {
     use objc2::{class, msg_send, sel};
     use std::path::PathBuf;
     use std::sync::{Mutex, OnceLock};
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     static QUEUE: Mutex<Vec<PathBuf>> = Mutex::new(Vec::new());
     static CTX: OnceLock<egui::Context> = OnceLock::new();
+    static QUIT: AtomicBool = AtomicBool::new(false);
+
+    extern "C" fn should_terminate(_this: *mut AnyObject, _cmd: Sel, _app: *mut AnyObject) -> usize {
+        // AppKit's Quit menu bypasses winit's window-close request. Defer it to
+        // the Studio so both drawing and machine-profile drafts can be handled.
+        QUIT.store(true, Ordering::Release);
+        if let Some(ctx) = CTX.get() { ctx.request_repaint(); }
+        0 // NSTerminateCancel; Studio later closes its viewport after confirmation.
+    }
 
     extern "C" fn open_files(_this: *mut AnyObject, _cmd: Sel, app: *mut AnyObject, files: *mut AnyObject) {
         // SAFETY : `files` est le NSArray<NSString*> fourni par AppKit pour la durée de l'appel.
@@ -214,6 +241,9 @@ pub mod finder {
         // méthode existante.
         unsafe {
             objc2::ffi::class_addMethod(cls as *const AnyClass as *mut objc2::ffi::objc_class, sel!(application:openFiles:).as_ptr(), Some(imp), c"v@:@@".as_ptr());
+            // SAFETY: AppKit expects NSUInteger applicationShouldTerminate:(NSApplication *).
+            let quit_imp: unsafe extern "C" fn() = std::mem::transmute(should_terminate as extern "C" fn(*mut AnyObject, Sel, *mut AnyObject) -> usize);
+            objc2::ffi::class_addMethod(cls as *const AnyClass as *mut objc2::ffi::objc_class, sel!(applicationShouldTerminate:).as_ptr(), Some(quit_imp), c"Q@:@".as_ptr());
         }
     }
 
@@ -225,6 +255,7 @@ pub mod finder {
     pub fn take() -> Vec<PathBuf> {
         std::mem::take(&mut *QUEUE.lock().unwrap_or_else(|e| e.into_inner()))
     }
+    pub fn take_quit() -> bool { QUIT.swap(false, Ordering::AcqRel) }
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -235,6 +266,7 @@ pub mod finder {
     pub fn take() -> Vec<std::path::PathBuf> {
         Vec::new()
     }
+    pub fn take_quit() -> bool { false }
 }
 
 #[cfg(test)]

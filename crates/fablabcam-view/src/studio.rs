@@ -12,11 +12,13 @@ use eframe::egui::{self, Color32, Key, Pos2, Sense, Stroke};
 use std::path::{Path, PathBuf};
 
 mod desktop;
+mod machine_ui;
 use desktop::Prefs;
 
 const HELP: &str = "fablabcam-studio-ui — éditeur 2D FabLabCAM
 
 USAGE  fablabcam-studio-ui [fichier.cb|.dxf|.svg] [options]
+  --tab machines   ouvre la bibliothèque des profils machine
   --demo-dessin     dessin d'exemple (plusieurs types de formes)
   --select <a,b>    sélectionne les formes de rang a, b… (1 = première)
   --smoke <n>       dessine n images puis quitte (test de bon fonctionnement)
@@ -72,6 +74,7 @@ enum Action {
     NewOp(OpKind),
     PickPost,
     System,
+    Machines,
     Help,
 }
 
@@ -185,6 +188,7 @@ impl Draw {
 }
 
 struct App {
+    machines: machine_ui::MachineUi,
     studio: Studio,
     tool: Draw,
     selection: Vec<u32>,
@@ -329,6 +333,7 @@ impl App {
         let prefs = Prefs::load();
         let layer = first_layer(&project);
         App {
+            machines: machine_ui::MachineUi::new(desktop::machine_store()),
             studio: Studio::new(project),
             tool: Draw::Select,
             selection: Vec::new(),
@@ -788,6 +793,10 @@ impl App {
             Pending::New => self.new_doc(true),
             Pending::Open(path) => self.open_path(&path, true),
             Pending::Quit => {
+                if self.machines.dirty() || self.machines.busy() {
+                    self.machines.request_quit();
+                    return;
+                }
                 self.allow_close = true;
                 ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             }
@@ -842,6 +851,7 @@ impl App {
                 }
             }
             Action::View(v) => {
+                self.machines.open = false;
                 self.view = v;
                 if v == View::Vue3D {
                     self.sim_frac = 1.0;
@@ -865,6 +875,7 @@ impl App {
             Action::NewOp(k) => self.add_op_for_selection(k),
             Action::PickPost => self.open_dialog(Purpose::PickPost, "Choisir un post-processeur", &["cbpp"]),
             Action::System => self.side = SideTab::Systeme,
+            Action::Machines => self.machines.open(),
             Action::Help => self.show_help = true,
         }
     }
@@ -988,6 +999,7 @@ impl App {
         ui.menu_button("Outils", |ui| {
             ui.set_min_width(220.0);
             item(ui, "Bibliothèque d'outils", "", Action::System, &mut act);
+            item(ui, "Profils machine · Atelier", "", Action::Machines, &mut act);
             item(ui, "Préférences…", "Cmd+,", Action::Prefs, &mut act);
         });
         ui.menu_button("Aide", |ui| {
@@ -2823,10 +2835,14 @@ impl App {
         egui::Frame::none().fill(Color32::from_rgb(28, 30, 33)).inner_margin(egui::Margin::symmetric(8.0, 4.0)).show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
                 for (v, label) in [(View::Plan, "Plan 2D"), (View::Vue3D, "3D"), (View::Simulation, "Simulation")] {
-                    if ui.selectable_label(self.view == v, label).clicked() {
+                    if ui.selectable_label(!self.machines.open && self.view == v, label).clicked() {
                         self.run(Action::View(v), ui.ctx());
                     }
                 }
+                if ui.selectable_label(self.machines.open, "Profils machine").clicked() {
+                    self.machines.open();
+                }
+                if self.machines.open { return; }
                 ui.separator();
                 match self.view {
                     View::Plan => {
@@ -2972,6 +2988,7 @@ impl eframe::App for App {
                 self.open_path(&p, false);
             }
         }
+        self.machines.poll(ctx);
         let typing = ctx.wants_keyboard_input();
         let shortcut = ctx.input(|i| {
             let (c, sh) = (i.modifiers.command, i.modifiers.shift);
@@ -2993,10 +3010,18 @@ impl eframe::App for App {
         });
         self.poll_dialog(ctx);
         if let Some(a) = shortcut {
-            self.run(a, ctx);
+            if self.machines.open {
+                match a {
+                    Action::New => self.machines.new_profile(),
+                    Action::Open | Action::Import => self.machines.import_profile(),
+                    Action::Save | Action::SaveAs => { self.machines.save(); }
+                    Action::ExportGcode => self.machines.export_profile(),
+                    _ => self.run(a, ctx),
+                }
+            } else { self.run(a, ctx); }
         }
         // outils de dessin au clavier (sans modificateur, hors saisie, hors tracé en cours)
-        if !typing && self.pts.is_empty() {
+        if !typing && !self.machines.open && self.pts.is_empty() {
             let pick = ctx.input(|i| {
                 if i.modifiers.command || i.modifiers.alt {
                     return None;
@@ -3045,7 +3070,7 @@ impl eframe::App for App {
             }
             ctx.request_repaint();
         }
-        if !typing {
+        if !typing && !self.machines.open {
             if undo {
                 self.studio.undo();
                 self.selection.retain(|id| self.studio.project().shape(*id).is_some());
@@ -3074,11 +3099,13 @@ impl eframe::App for App {
                 menu_action = self.menu_bar(ui);
             });
         });
+        if !self.machines.open {
         egui::TopBottomPanel::top("barre").show(ctx, |ui| {
             if let Some(a) = self.toolbar(ui) {
                 menu_action = Some(a);
             }
         });
+        }
         if let Some(a) = menu_action {
             self.run(a, ctx);
         }
@@ -3114,6 +3141,7 @@ impl eframe::App for App {
                 });
             });
         }
+        if !self.machines.open {
         egui::SidePanel::left("side").default_width(340.0).show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.selectable_value(&mut self.side, SideTab::Projet, "Dessin");
@@ -3127,14 +3155,19 @@ impl eframe::App for App {
                 }
             }
         });
+        }
         egui::CentralPanel::default().frame(egui::Frame::none()).show(ctx, |ui| {
             self.view_bar(ui);
+            if self.machines.open { self.machines.show(ui); return; }
             match self.view {
                 View::Plan => self.canvas(ui),
                 View::Vue3D | View::Simulation => self.view3d(ui),
             }
         });
         // journal : chaque nouveau message, et la description de la sélection quand elle change
+        if self.machines.open && !self.machines.message.is_empty() {
+            self.status = format!("[Profils machine] {}", self.machines.message);
+        }
         if !self.status.is_empty() && self.status != self.logged_status {
             self.logged_status = self.status.clone();
             self.console.push(self.status.clone());
@@ -3172,9 +3205,22 @@ impl eframe::App for App {
         if self.show_script {
             self.script_window(ctx);
         }
-        if ctx.input(|i| i.viewport().close_requested()) && self.dirty() && !self.allow_close && self.smoke.is_none() {
-            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
-            self.confirm = Some(Pending::Quit);
+        let native_quit = desktop::finder::take_quit();
+        if (native_quit || ctx.input(|i| i.viewport().close_requested())) && !self.allow_close && self.smoke.is_none() {
+            if self.machines.dirty() || self.machines.busy() {
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                self.machines.request_quit();
+            } else if self.dirty() {
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                self.confirm = Some(Pending::Quit);
+            } else if native_quit {
+                self.continue_pending(Pending::Quit, ctx);
+            }
+        }
+        self.machines.windows(ctx);
+        if self.machines.take_quit() {
+            if self.dirty() { self.confirm = Some(Pending::Quit); }
+            else { self.continue_pending(Pending::Quit, ctx); }
         }
         self.confirm_window(ctx);
         if ctx.input(|i| !i.raw.hovered_files.is_empty()) {
@@ -3253,6 +3299,7 @@ fn main() {
     match tab.as_deref() {
         Some("tools") | Some("outils") | Some("systeme") => app.side = SideTab::Systeme,
         Some("ops") | Some("operations") => app.focus = Focus::Op,
+        Some("machines") => app.machines.open(),
         Some("3d") => app.view = View::Simulation,
         _ => {}
     }
