@@ -8,16 +8,20 @@ use std::{fs, path::PathBuf};
 struct Temp(PathBuf);
 impl Temp {
     fn new() -> Self {
-        Self(
-            std::env::temp_dir().join(format!(
-                "fablabcam-profile-ui-{}-{}",
-                std::process::id(),
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_nanos()
-            )),
-        )
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static NEXT: AtomicU64 = AtomicU64::new(0);
+        // Clock resolution alone cannot isolate tests running in parallel.
+        let path = std::env::temp_dir().join(format!(
+            "fablabcam-profile-ui-{}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&path).unwrap();
+        Self(path)
     }
     fn library(&self) -> Library {
         Library::new(&self.0)
