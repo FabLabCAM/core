@@ -44,7 +44,7 @@ pub(crate) fn block(b: &Block, p: &Profile, r: &mut Report, s: &mut State) {
     for c in ["M7","M8","M9"] {
         if b.has(c) && !p.tools.coolant.iter().any(|v| v == c) { r.error("coolant", b.line, 1, Some(c.into()), "Refroidissement non configuré"); }
     }
-    if b.has("M6") && !p.tools.m6_preserves_position { r.partial("tool_macro", b.line, b.column('M'), Some("M6".into()), "La macro M6 peut déplacer les axes"); s.poisoned = true; }
+    if b.has("M6") && !p.tools.m6_preserves_state { r.partial("tool_macro", b.line, b.column('M'), Some("M6".into()), "La macro M6 peut modifier la position et l'état modal"); s.poisoned = true; }
     if b.has("M0") || b.has("M1") { r.partial("operator_stop", b.line, b.column('M'), None, "Durée de l'arrêt opérateur inconnue"); }
 }
 fn format(b: &Block, p: &Profile, r: &mut Report) {
@@ -64,6 +64,8 @@ fn format(b: &Block, p: &Profile, r: &mut Report) {
     }
 }
 pub(crate) fn spindle(b: &Block, p: &Profile, r: &mut Report, s: &State) {
+    // After an unknown command, modal spindle assumptions are no longer evidence.
+    if s.poisoned { return; }
     if let Some(direction) = s.spindle {
         if !p.spindle.directions.iter().any(|v| v == direction) { r.error("spindle_direction", b.line, b.column('M'), None, "Sens de broche interdit"); }
         if s.speed <= 0. || p.spindle.min_rpm.is_some_and(|v| s.speed < v) || p.spindle.max_rpm.is_some_and(|v| s.speed > v) {

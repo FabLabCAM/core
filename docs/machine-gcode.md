@@ -57,8 +57,8 @@ plan ; elle peut refuser un arc court dont le maximum théorique n'est pas attei
   sous-programmes, paramètres et macros : reconnus lorsqu'autorisés, mais non
   exécutés. Les statistiques s'arrêtent au premier état de mouvement inconnu.
 - G4 : unités de temporisation configurables dans le contrôleur ; durée partielle.
-- M6 : peut déplacer les axes. `m6_preserves_position` ne doit être vrai qu'après
-  vérification de la configuration locale. M0/M1 rendent la durée partielle.
+- M6 : peut déplacer les axes. `m6_preserves_state` ne doit être vrai qu'après
+  vérification que M6 conserve position, origines, modes, avance et broche. M0/M1 rendent la durée partielle.
 - Table d'outils, park, position de changement, accélération et convention des
   axes sont conservés comme métadonnées ; ils ne créent aucun mouvement implicite.
 - Pas de simulation de collision, correction d'outil ou pilotage machine.

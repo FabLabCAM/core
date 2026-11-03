@@ -195,7 +195,7 @@
     "changer": "manual",
     "positions": null,
     "m6_behavior": "Macros M6Start/M6End selon la configuration locale",
-    "m6_preserves_position": false,
+    "m6_preserves_state": false,
     "coolant": [
       "M7",
       "M8",

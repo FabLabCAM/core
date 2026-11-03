@@ -94,3 +94,10 @@ fn valid(body: &str) -> Report {
     assert_eq!(validate(&program("M0"),&demo()).status,Status::Incomplete);
     assert!(has(&validate(&program("M30\nG0 X1"),&demo()),"after_end"));
 }
+
+#[test] fn unknown_macros_invalidate_modal_assumptions() {
+    let r = validate(&program("M3 S1000\nM6\nS0\nG0 X10"),&demo());
+    assert_eq!(r.status,Status::Incomplete,"{:?}",r.diagnostics);
+    assert!(!has(&r,"spindle_speed"));
+    assert!(r.statistics.bounds_max_mm.is_none());
+}

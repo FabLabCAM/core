@@ -117,8 +117,8 @@ pub struct Tools {
     pub changer: String,
     pub positions: Option<u32>,
     pub m6_behavior: String,
-    /// Set only after checking that M6 cannot move axes on this installation.
-    pub m6_preserves_position: bool,
+    /// Set only after verifying M6 preserves position, offsets, modes, feed and spindle state.
+    pub m6_preserves_state: bool,
     pub coolant: Vec<String>,
     pub table: BTreeMap<u32, Tool>,
 }
