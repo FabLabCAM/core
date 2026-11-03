@@ -52,7 +52,7 @@ cargo run --locked -p fablabcam-cli -- web demo -o studio.html
 Les valeurs des fixtures servent aux tests ; adapter les réglages à la machine,
 au matériau et à l'outil avant tout usinage réel.
 
-## Profils de machine (0.4.0)
+## Profils de machine (0.4.1)
 
 Dans le Studio, ouvrez **Profils machine** ou **Outils → Profils machine · Atelier**.
 Créez un profil avec l'assistant, modifiez ses paramètres, dupliquez-le ou
@@ -68,7 +68,9 @@ cargo run --locked -p fablabcam-cli -- machine validate crates/fablabcam-cam/tes
 ```
 
 Le profil de démonstration décrit une machine fictive ; le profil de référence
-Mach3 Mill doit être configuré pour votre atelier.
+ID CNC PRO - Mach3 est le modèle par défaut, à configurer pour votre atelier.
+Le fichier `profiles/id-cnc-pro.json` contient les sources et les indications
+nominales ; les réglages de la machine restent à confirmer.
 
 ## Tests
 

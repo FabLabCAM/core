@@ -130,6 +130,11 @@ pub struct Tool {
     pub kind: String,
 }
 impl Profile {
+    /// Workshop template. Nominal catalogue data never substitutes for measured limits.
+    pub fn id_cnc_pro() -> Self {
+        Self::from_json(include_str!("../../../../../profiles/id-cnc-pro.json"))
+            .expect("bundled ID CNC PRO profile must be valid")
+    }
     pub fn mach3_mill() -> Self {
         serde_json::from_str(include_str!("../../../../../profiles/mach3-mill.json"))
             .expect("bundled Mach3 profile must be valid JSON")
@@ -143,4 +148,8 @@ impl Profile {
         self.check()?;
         serde_json::to_string_pretty(self).map(|s| s + "\n").map_err(|e| e.to_string())
     }
+}
+
+impl Default for Profile {
+    fn default() -> Self { Self::id_cnc_pro() }
 }

@@ -38,3 +38,18 @@ Limites : les profils ne sélectionnent pas automatiquement un post-processeur
 `.cbpp`, ne pilotent pas de machine et ne rendent pas la simulation physique.
 La qualification d'une machine et la validation d'un programme sont des actions
 distinctes de l'édition de sa configuration.
+
+## Complément 0.4.1 : première machine de l’issue #9
+
+`Profile::default()` utilise le JSON embarqué ID CNC PRO - Mach3, également
+accessible par `Profile::id_cnc_pro()`. Le modèle générique Mach3 reste disponible.
+Studio et CLI utilisent le même modèle. L’ouverture de l’Atelier initialise
+uniquement un magasin vide, sous le verrou du Store, par une écriture atomique.
+Une réouverture préserve les profils personnalisés et la sélection courante.
+Un nouveau profil utilise un identifiant distinct. Aucun profil n’est remplacé
+lors d’une mise à jour ; une bibliothèque existante accède au modèle avec Nouveau profil.
+
+La fiche constructeur donne des courses nominales, pas l’origine du repère machine.
+Elles sont donc décrites avec leur source ; les bornes, avances, broche, origines
+et Z de sécurité restent à relever. La sémantique Mach3 est conservée ; le profil
+ne prétend pas confirmer le réglage local de M6 ni sélectionner un post-processeur.

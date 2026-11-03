@@ -15,7 +15,8 @@ explique les frontières des modules.
 - `fablabcam_studio::gcode_store::Store` : CRUD des profils et révisions locales.
 - `fablabcam_cli::machine::run` : sortie JSON et code de retour ; la commande
   historique `fablabcam gcode` continue à générer les parcours CAO/FAO.
-- `profiles/mach3-mill.json` : référence non configurée ;
+- `profiles/id-cnc-pro.json` : ID CNC PRO - Mach3, modèle par défaut depuis 0.4.1 ;
+  `profiles/mach3-mill.json` : référence générique non configurée ;
   `profiles/mach3-mill-demo.json` : machine fictive utilisée par les tests.
 
 ```rust

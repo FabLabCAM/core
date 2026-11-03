@@ -22,6 +22,9 @@ impl Drop for Temp { fn drop(&mut self) { let _ = fs::remove_dir_all(&self.0); }
     fs::write(t.0.join("valid.nc"),include_str!("../../fablabcam-cam/tests/fixtures/machine-valid.nc")).unwrap();
     assert!(t.run(&["--help"]).status.success());
     assert!(t.run(&["profile","init","reference.json"]).status.success());
+    let initialized: serde_json::Value = serde_json::from_str(&fs::read_to_string(t.0.join("reference.json")).unwrap()).unwrap();
+    assert_eq!(initialized["name"], "ID CNC PRO - Mach3");
+    assert_eq!(initialized["id"], "id-cnc-pro-1500x800");
     assert!(!t.run(&["profile","init","reference.json"]).status.success());
     let out = t.run(&["validate","valid.nc","--profile","demo.json"]);
     assert_eq!(out.status.code(),Some(0),"{}",String::from_utf8_lossy(&out.stdout));

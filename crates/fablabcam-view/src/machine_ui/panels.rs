@@ -29,7 +29,7 @@ impl MachineUi {
                 }
             });
             ui.small(if self.wizard.is_some() {
-                "Un modèle de départ, puis les paramètres de votre machine."
+                "Modèle ID CNC PRO - Mach3, puis les paramètres de votre machine."
             } else {
                 "Bibliothèque locale · les profils sont indépendants du dessin ouvert."
             });

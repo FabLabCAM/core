@@ -2,7 +2,7 @@ use super::*;
 
 pub(super) fn profile_command(a: &Args) -> Result<Output,String> {
     match a.pos.get(1).map(String::as_str) {
-        Some("init") => { a.check(3,&[])?; write(&a.pos[2],&Profile::mach3_mill().to_json()?)?; json(&serde_json::json!({"created":a.pos[2]}),0) }
+        Some("init") => { a.check(3,&[])?; write(&a.pos[2],&Profile::default().to_json()?)?; json(&serde_json::json!({"created":a.pos[2]}),0) }
         Some("add"|"update") => { a.check(3,&["--store"])?; let p = profile(&a.pos[2])?; a.store()?.save_profile(&p,a.pos[1] == "update")?; json(&p,0) }
         Some("list") => { a.check(2,&["--store"])?; json(&a.store()?.profiles()?,0) }
         Some("show") => { a.check(3,&["--store"])?; json(&a.store()?.profile(&a.pos[2])?,0) }
