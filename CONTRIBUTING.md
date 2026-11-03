@@ -14,3 +14,7 @@ cargo clippy --locked --workspace --all-targets -- -D warnings
 Documenter les modifications de formats et d'usinage. Utiliser des données de
 test originales et de petits commits. Ne pas ajouter de secrets, de réglages
 personnels, de compilations ou de fichiers tiers sans droits de redistribution.
+
+Chaque changement utilisateur référence son issue dans `CHANGELOG.md` et met à
+jour le guide `FabLabCAM/docs` (procédure, limites, exemples et index). Voir
+[le processus de release](docs/releasing.md).

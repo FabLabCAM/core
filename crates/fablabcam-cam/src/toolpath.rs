@@ -246,7 +246,7 @@ fn tab_spans(c: &Pline, p: &Params, kind: ShapeKind, shape: Option<&Pline>) -> V
     for center in centers {
         // tabs manuelles : celle qui chevauche la précédente est écartée ; automatiques : les tabs
         // qui se chevauchent sont gardées et usinées en enveloppe (le logiciel de référence)
-        let free = t.method != TabMethod::Manual || out.last().map_or(true, |l| center - half_base >= l.center + l.half_base - EPS);
+        let free = t.method != TabMethod::Manual || out.last().is_none_or(|l| center - half_base >= l.center + l.half_base - EPS);
         let inside = !closed || (center - half_base >= 0.0 && center + half_base <= perim);
         if free && inside {
             out.push(Tab { center, half_top, half_base });

@@ -25,7 +25,7 @@ Voir [les notes d'architecture](docs/architecture.md).
 
 ## Construire et essayer
 
-Installer Rust stable avec Cargo, puis :
+Installer Rust 1.89 ou supérieur avec Cargo, puis :
 
 ```sh
 git clone https://github.com/FabLabCAM/core.git
@@ -51,6 +51,19 @@ cargo run --locked -p fablabcam-cli -- web demo -o studio.html
 
 Les valeurs des fixtures servent aux tests ; adapter les réglages à la machine,
 au matériau et à l'outil avant tout usinage réel.
+
+## Profils de machine (0.3.0)
+
+La commande `fablabcam machine` analyse, valide, convertit et archive les G-code
+avec un profil JSON. Voir le [guide technique](docs/machine-gcode.md),
+les [notes de version](CHANGELOG.md) et le [guide utilisateur](https://fablabcam.github.io/docs/guide/machines/).
+
+```sh
+cargo run --locked -p fablabcam-cli -- machine validate crates/fablabcam-cam/tests/fixtures/machine-valid.nc --profile profiles/mach3-mill-demo.json
+```
+
+Le profil de démonstration décrit une machine fictive ; le profil de référence
+Mach3 Mill doit être configuré pour votre atelier.
 
 ## Tests
 

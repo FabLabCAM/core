@@ -38,3 +38,9 @@ Le format de sauvegarde est décrit dans `file-formats.md`.
 La hauteur du texte utilise la métrique des capitales de la police. Si cette
 métrique est absente, elle est mesurée sur le glyphe `H` ; l'estimation à 70 % du
 cadratin reste le dernier recours pour les polices sans cette lettre.
+
+## Gestion des G-code par machine
+
+Le module pur `fablabcam_cam::gcode::machine` analyse et valide les programmes ;
+`fablabcam_studio::gcode_store` conserve profils et révisions. La CLI les expose
+sans ajouter de crate. Voir l’[ADR-0001](adr/0001-machine-gcode.md).

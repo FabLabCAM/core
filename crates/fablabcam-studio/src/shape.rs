@@ -46,7 +46,7 @@ pub fn line(a: (f64, f64), b: (f64, f64)) -> Result<Entity, EditError> {
 pub fn polyline(pts: &[(f64, f64)], closed: bool) -> Result<Entity, EditError> {
     let mut v: Vec<(f64, f64, f64)> = Vec::new();
     for &(x, y) in pts {
-        if v.last().map_or(true, |l| (l.0 - x).hypot(l.1 - y) > EPS) {
+        if v.last().is_none_or(|l| (l.0 - x).hypot(l.1 - y) > EPS) {
             v.push((x, y, 0.0));
         }
     }

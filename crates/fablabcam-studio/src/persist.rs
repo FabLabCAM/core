@@ -253,7 +253,7 @@ pub fn load_with_notes(xml: &str) -> Result<(Project, Vec<String>), String> {
                             .filter_map(|s| s.split_once(',').and_then(|(x, y)| Some([x.parse().ok()?, y.parse().ok()?])))
                             .collect();
                         op.lead = o.attribute("Lead").and_then(LeadChoice::from_key).unwrap_or(op.lead);
-                        op.enabled = o.attribute("Enabled").map_or(true, |v| v == "true");
+                        op.enabled = o.attribute("Enabled").is_none_or(|v| v == "true");
                         op.feed = f(o, "Feed");
                         op.plunge = f(o, "Plunge");
                         op.spindle = f(o, "Spindle");

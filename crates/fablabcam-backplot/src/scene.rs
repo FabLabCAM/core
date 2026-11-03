@@ -108,7 +108,7 @@ pub fn build_scene(bp: &Backplot, o: &ViewOptions) -> Vec<Prim> {
             Kind::Plunge => {
                 flush(&mut cur, &mut prims);
                 let key = ((s.to[0] * 100.0).round() as i64, (s.to[1] * 100.0).round() as i64);
-                let in_range = o.z_range.map_or(true, |(zl, zh)| s.from[2].min(s.to[2]) <= zh && s.from[2].max(s.to[2]) >= zl);
+                let in_range = o.z_range.is_none_or(|(zl, zh)| s.from[2].min(s.to[2]) <= zh && s.from[2].max(s.to[2]) >= zl);
                 if o.show_plunges && in_range && !plunge_seen.contains(&key) {
                     plunge_seen.push(key);
                     prims.push(Prim::Dot { pos: [s.to[0], s.to[1]], rgb: PLUNGE_RGB, radius: 3.0, ring: false });

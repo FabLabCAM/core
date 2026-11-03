@@ -243,7 +243,7 @@ pub fn parse_svg(text: &str) -> Result<SvgImport, String> {
         // doublons consécutifs : le moteur géométrique n'en veut pas
         let mut w: Vec<V> = Vec::new();
         for p in v {
-            if w.last().map_or(true, |l| (l.0 - p.0).hypot(l.1 - p.1) > 1e-9) {
+            if w.last().is_none_or(|l| (l.0 - p.0).hypot(l.1 - p.1) > 1e-9) {
                 w.push(p);
             } else if let Some(l) = w.last_mut() {
                 l.2 = p.2.max(l.2);

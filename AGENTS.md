@@ -17,3 +17,8 @@ CAO/FAO en Rust, sous Apache-2.0. Dépôt : https://github.com/FabLabCAM/core.
   accessible au code des pull requests externes.
 - TODO(agent) : ajouter des cas de référence indépendants pour les poches,
   les perçages et les textes ; améliorer l'interopérabilité XML documentée.
+
+- Pour chaque issue livrée : actualiser `CHANGELOG.md`, le guide, son index et le
+  suivi des versions dans `FabLabCAM/docs` ; suivre `docs/releasing.md`.
+- Analyse G-code : ne jamais présenter un rapport partiel comme valide.
+  Les profils de référence ne doivent pas inventer de limites physiques.

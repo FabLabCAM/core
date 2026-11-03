@@ -33,6 +33,7 @@ suffix = ".exe" if args.platform == "windows" else ""
 for binary in ("fablabcam", "fablabcam-view", "fablabcam-studio-ui"):
     shutil.copy2(bins / (binary + suffix), work / (binary + suffix))
 shutil.copytree(root / "target" / "notices", work, dirs_exist_ok=True)
+shutil.copytree(root / "profiles", work / "profiles")
 (work / "README.txt").write_text(
     f"FabLabCAM {version} — {args.platform} {args.arch}\n\n"
     "Studio: fablabcam-studio-ui\nCLI: fablabcam help\nViewer: fablabcam-view\n"
@@ -53,6 +54,7 @@ if args.platform == "macos":
     for binary in ("fablabcam", "fablabcam-view", "fablabcam-studio-ui"):
         shutil.move(work / binary, contents / "MacOS" / binary)
     shutil.copytree(root / "target" / "notices", resources, dirs_exist_ok=True)
+    shutil.copytree(root / "profiles", resources / "profiles")
     icon = root / "target" / "package" / "icon.png"
     run("python3", "docs/make-icon.py", icon)
     iconset = root / "target" / "package" / "AppIcon.iconset"
@@ -94,6 +96,7 @@ else:
     doc = deb / "usr" / "share" / "doc" / "fablabcam"
     shutil.copytree(root / "target" / "notices", doc)
     shutil.copy2(work / "README.txt", doc / "README.txt")
+    shutil.copytree(root / "profiles", doc / "profiles")
     desktop = deb / "usr" / "share" / "applications"
     desktop.mkdir(parents=True)
     (desktop / "org.fablabcam.studio.desktop").write_text("[Desktop Entry]\nType=Application\nName=FabLabCAM Studio\nComment=CAO/FAO 2.5D\nExec=fablabcam-studio-ui %F\nIcon=org.fablabcam.studio\nTerminal=false\nCategories=Graphics;Engineering;\n")

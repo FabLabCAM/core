@@ -2,6 +2,7 @@
 name = "fablabcam-cli"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 
@@ -15,3 +16,6 @@ fablabcam-cam = { path = "../fablabcam-cam" }
 fablabcam-geom = { path = "../fablabcam-geom" }
 fablabcam-backplot = { path = "../fablabcam-backplot" }
 fablabcam-studio = { path = "../fablabcam-studio" }
+
+serde = "1"
+serde_json = "1"
