@@ -31,6 +31,7 @@ impl MachineUi {
             }
             Some(1) => {
                 self.library.discard();
+                self.wizard = None;
                 let action = self.pending.take().expect("pending action");
                 self.execute(action);
             }
