@@ -1,5 +1,7 @@
 //! Interface en ligne de commande de FabLabCAM (logique testable, `main.rs` n'est qu'un appel).
 
+pub mod machine;
+
 use fablabcam_cam::{drill, emit, pocket_shapes, profile, LeadKind, MillingDirection, Params, Post, Side, StyleLibrary, TabMethod, TabStyle, Toolpath};
 use fablabcam_geom::{Pline, PlineSource};
 use fablabcam_backplot::{parse_gcode, svg, web, ColorBy, ViewOptions};
@@ -9,6 +11,8 @@ pub const USAGE: &str = "\
 fablabcam — FAO 2,5D en Rust (dessins XML .cb, DXF et SVG)
 
 USAGE
+  fablabcam version                              version du produit
+  fablabcam machine help                         profils, validation et archives G-code
   fablabcam info   <fichier.cb>
   fablabcam styles <styles.xml>
   fablabcam gcode  <fichier.cb> --op <profile-outside|profile-inside|profile-on|pocket|drill> [options]
@@ -212,7 +216,7 @@ fn gcode(a: &Args) -> Result<String, String> {
     let entities: Vec<&Entity> = doc
         .layers
         .iter()
-        .filter(|l| layer.map_or(true, |n| l.name == n))
+        .filter(|l| layer.is_none_or(|n| l.name == n))
         .flat_map(|l| l.entities.iter())
         .collect();
     if entities.is_empty() {
@@ -451,6 +455,11 @@ fn script(a: &Args) -> Result<String, String> {
 
 /// Exécute la commande et renvoie le texte à afficher (ou écrit dans `-o`).
 pub fn run(args: &[String]) -> Result<String, String> {
+    if args == ["version"] || args == ["--version"] { return Ok(format!("FabLabCAM {}\n", env!("CARGO_PKG_VERSION"))); }
+    if args.first().is_some_and(|s| s == "machine") {
+        let out = machine::run(&args[1..])?;
+        return if out.exit_code == 0 { Ok(out.text) } else { Err(out.text) };
+    }
     let a = split(args)?;
     match a.pos.first().map(String::as_str) {
         None | Some("help") => Ok(USAGE.to_string()),

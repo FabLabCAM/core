@@ -3,6 +3,7 @@
 //!
 //! L'interface egui et la page web ne font qu'afficher et déclencher ces fonctions.
 
+pub mod gcode_store;
 pub mod cad;
 pub mod cbnative;
 pub mod curves;
