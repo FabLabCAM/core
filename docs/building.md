@@ -1,6 +1,6 @@
 # Construction et distribution
 
-Depuis la racine du dépôt, avec Rust stable :
+Depuis la racine du dépôt, avec Rust 1.89 ou supérieur (distributions : 1.99.1) :
 
 ```sh
 cargo build --locked --release --workspace
@@ -46,3 +46,6 @@ de construction n'a aucune permission d'écriture sur le dépôt.
 Les démonstrations web se régénèrent avec `fablabcam web demo -o studio.html` et
 `fablabcam plot programme.nc -o trace.html`. Les captures historiques ne font pas
 partie du dépôt public.
+
+La [procédure de release](releasing.md) relie issues, tests, notes de version et
+publication du guide. Les profils JSON sont inclus dans chaque paquet.
