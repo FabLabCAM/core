@@ -65,7 +65,7 @@ pub fn nearest_cut(bp: &Backplot, world: [f64; 2], max_dist: f64) -> Option<(usi
             let l2 = dx * dx + dy * dy;
             let u = if l2 > 1e-18 { (((world[0] - a[0]) * dx + (world[1] - a[1]) * dy) / l2).clamp(0.0, 1.0) } else { 0.0 };
             let d = (world[0] - (a[0] + u * dx)).hypot(world[1] - (a[1] + u * dy));
-            if d <= max_dist && best.map_or(true, |(_, bd, _)| d < bd) {
+            if d <= max_dist && best.is_none_or(|(_, bd, _)| d < bd) {
                 best = Some((i, d, (k as f64 + u) / n as f64));
             }
         }

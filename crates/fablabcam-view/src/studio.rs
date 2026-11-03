@@ -2124,7 +2124,7 @@ impl App {
     fn load_tool_draft(&mut self) {
         let want = self.sel_tool.clone();
         let have = self.tool_draft.as_ref().and_then(|d| d.0.clone());
-        if self.tool_draft.as_ref().map_or(true, |d| d.0.is_some()) && want != have {
+        if self.tool_draft.as_ref().is_none_or(|d| d.0.is_some()) && want != have {
             self.tool_draft = want.and_then(|n| self.studio.project().tool(&n).cloned().map(|t| (Some(n), t)));
         }
     }
@@ -2748,7 +2748,7 @@ impl App {
 impl App {
     // ---------- onglet 3D / simulation ----------
     fn refresh_sim(&mut self) {
-        let stale = self.sim.as_ref().map_or(true, |(rev, f, r, _)| *rev != self.studio.rev || (*f - self.sim_frac).abs() > 1e-9 || (*r - self.sim_res).abs() > 1e-9);
+        let stale = self.sim.as_ref().is_none_or(|(rev, f, r, _)| *rev != self.studio.rev || (*f - self.sim_frac).abs() > 1e-9 || (*r - self.sim_res).abs() > 1e-9);
         if stale {
             self.sim = sim::simulate(&self.studio, self.sim_res, self.sim_frac).map(|o| (self.studio.rev, self.sim_frac, self.sim_res, o));
             if let (Some((_, _, _, o)), true) = (&self.sim, self.sim_frac >= 1.0) {

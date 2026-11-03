@@ -1,2 +1,2 @@
-# version minimale visée : clippy ne propose rien qui exige un Rust plus récent
-msrv = "1.75"
+# Rust 1.89 : verrouillage standard des archives locales.
+msrv = "1.89"

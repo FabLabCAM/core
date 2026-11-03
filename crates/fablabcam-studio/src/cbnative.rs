@@ -82,7 +82,7 @@ pub fn import(p: &mut Project, root: roxmltree::Node, ids: &HashMap<u32, Vec<u32
     let Some(parts) = child(root, "parts") else { return Ok(notes) };
     for part in parts.children().filter(|c| c.is_element() && c.tag_name().name() == "part") {
         let part_name = part.attribute("Name").unwrap_or("").to_string();
-        let part_on = part.attribute("Enabled").map_or(true, |v| !v.eq_ignore_ascii_case("false"));
+        let part_on = part.attribute("Enabled").is_none_or(|v| !v.eq_ignore_ascii_case("false"));
         let Some(mops) = child(part, "machineops") else { continue };
         for m in mops.children().filter(|c| c.is_element()) {
             let tag = m.tag_name().name();
@@ -199,7 +199,7 @@ pub fn import(p: &mut Project, root: roxmltree::Node, ids: &HashMap<u32, Vec<u32
                 o.feed = Some(feed);
                 o.plunge = Some(plunge);
                 o.spindle = Some(spindle);
-                o.enabled = part_on && m.attribute("Enabled").map_or(true, |v| !v.eq_ignore_ascii_case("false"));
+                o.enabled = part_on && m.attribute("Enabled").is_none_or(|v| !v.eq_ignore_ascii_case("false"));
             })
             .map_err(|e| e.to_string())?;
         }

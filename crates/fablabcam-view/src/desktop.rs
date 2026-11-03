@@ -213,7 +213,7 @@ pub mod finder {
         // SAFETY : signature « v@:@@ » conforme à application:openFiles: ; `class_addMethod` ne remplace pas une
         // méthode existante.
         unsafe {
-            objc2::ffi::class_addMethod(cls as *const AnyClass as *mut objc2::ffi::objc_class, sel!(application:openFiles:).as_ptr(), Some(imp), b"v@:@@\0".as_ptr().cast());
+            objc2::ffi::class_addMethod(cls as *const AnyClass as *mut objc2::ffi::objc_class, sel!(application:openFiles:).as_ptr(), Some(imp), c"v@:@@".as_ptr());
         }
     }
 
