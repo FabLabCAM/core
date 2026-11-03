@@ -1,5 +1,17 @@
 # Notes de version
 
+## 0.4.1 — 2026-11-03
+
+### ID CNC PRO - Mach3 par défaut — [#9](https://github.com/FabLabCAM/core/issues/9)
+
+- Profil `id-cnc-pro-1500x800`, fourni dans `profiles/id-cnc-pro.json`,
+  avec identité du LOV, sources et caractéristiques nominales documentées.
+- Modèle par défaut de création dans le Studio et `machine profile init`.
+  Une bibliothèque vide reçoit ce profil ; les profils existants sont conservés.
+- Les paramètres locaux non confirmés restent absents : une course nominale
+  ne définit pas les bornes du repère machine. Le modèle reste « À configurer ».
+- Exemple JSON, guide, captures du profil par défaut et suivi de l’issue actualisés.
+
 ## 0.4.0 — 2026-11-03
 
 ### Atelier des profils machine dans le Studio — [#11](https://github.com/FabLabCAM/core/issues/11)

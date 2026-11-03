@@ -44,6 +44,8 @@ fn guided_creation_keeps_unknown_machine_parameters_unknown() {
     lib.create().unwrap();
     let draft = lib.draft.as_ref().unwrap();
     assert!(draft.dirty());
+    assert_eq!(draft.profile.name, "ID CNC PRO - Mach3");
+    let created_id = draft.profile.id.clone();
     assert!(draft
         .profile
         .axes
@@ -56,6 +58,7 @@ fn guided_creation_keeps_unknown_machine_parameters_unknown() {
     assert!(!lib.dirty());
     let mut reopened = temp.library();
     reopened.reload().unwrap();
+    reopened.select(&created_id).unwrap();
     assert_eq!(
         reopened.draft.as_ref().unwrap().profile,
         lib.draft.as_ref().unwrap().profile
@@ -75,7 +78,10 @@ fn navigation_and_refresh_cannot_discard_unsaved_or_unapplied_json() {
     assert!(lib.duplicate().is_err());
     assert!(lib.stage_import(demo(), None, false).is_err());
     lib.discard();
-    assert_eq!(lib.draft.as_ref().unwrap().profile.name, "Nouvelle machine");
+    assert_eq!(
+        lib.draft.as_ref().unwrap().profile.name,
+        "ID CNC PRO - Mach3"
+    );
     lib.draft.as_mut().unwrap().json = "{invalide".into();
     assert!(lib.dirty());
     assert!(lib.save().is_err());
@@ -83,8 +89,55 @@ fn navigation_and_refresh_cannot_discard_unsaved_or_unapplied_json() {
     assert!(lib.draft.as_mut().unwrap().apply_json().is_err());
     assert_eq!(
         Store::new(&temp.0).profile(&id).unwrap().name,
-        "Nouvelle machine"
+        "ID CNC PRO - Mach3"
     );
+}
+
+#[test]
+fn first_launch_seeds_one_default_even_with_concurrent_studios() {
+    let temp = Temp::new();
+    let threads: Vec<_> = (0..8)
+        .map(|_| {
+            let root = temp.0.clone();
+            std::thread::spawn(move || {
+                let mut lib = Library::new(root);
+                lib.reload().unwrap();
+                assert!(!lib.dirty());
+                assert_eq!(lib.draft.unwrap().profile, Profile::default());
+            })
+        })
+        .collect();
+    for thread in threads {
+        thread.join().unwrap();
+    }
+    assert_eq!(
+        Store::new(&temp.0).profiles().unwrap(),
+        vec![Profile::default()]
+    );
+}
+
+#[test]
+fn loading_a_library_preserves_custom_defaults_and_other_profiles() {
+    let temp = Temp::new();
+    let store = Store::new(&temp.0);
+    store.save_profile(&demo(), false).unwrap();
+    let mut lib = temp.library();
+    lib.reload().unwrap();
+    assert_eq!(store.profiles().unwrap(), vec![demo()]);
+    let mut custom = Profile {
+        name: "Notre machine configurée".into(),
+        ..Profile::default()
+    };
+    custom.axes.get_mut(&'X').unwrap().min = Some(-400.);
+    store.save_profile(&custom, false).unwrap();
+    let mut reopened = temp.library();
+    reopened.reload().unwrap();
+    assert_eq!(reopened.draft.as_ref().unwrap().profile, custom);
+    reopened.select(&demo().id).unwrap();
+    reopened.reload().unwrap();
+    assert_eq!(reopened.draft.unwrap().profile, demo());
+    assert_eq!(store.profile(&custom.id).unwrap(), custom);
+    assert_eq!(store.profiles().unwrap().len(), 2);
 }
 #[test]
 fn json_edit_is_atomic_and_keeps_advanced_fields() {

@@ -15,6 +15,22 @@ fn valid(body: &str) -> Report {
     p = demo(); p.axes.get_mut(&'X').unwrap().min = Some(101.); assert!(p.check().is_err());
     p = demo(); p.defaults.units = "G22".into(); assert!(p.check().is_err());
 }
+#[test] fn default_id_cnc_pro_template_cannot_validate_unconfirmed_machine_settings() {
+    let p = Profile::default();
+    assert_eq!(p, Profile::from_json(include_str!("../../../profiles/id-cnc-pro.json")).unwrap());
+    assert_eq!(p.name, "ID CNC PRO - Mach3");
+    assert_eq!(p.id, "id-cnc-pro-1500x800");
+    assert!(p.axes.values().all(|a| a.min.is_none() && a.max.is_none() && a.max_feed.is_none()));
+    assert!(p.spindle.min_rpm.is_none() && p.spindle.max_rpm.is_none());
+    assert!(p.initial_position_mm.is_none() && p.work_offsets_mm.is_empty());
+    let report = validate(include_str!("fixtures/machine-valid.nc"), &p);
+    assert_eq!(report.status, Status::Incomplete);
+    assert!(!report.limits_checked);
+    assert!(has(&report, "unconfigured_limits"));
+    assert_eq!(validate(&program("G123"), &p).status, Status::Invalid);
+    assert!(convert(include_str!("fixtures/machine-valid.nc"), &p, &p).output.is_none());
+    assert_eq!(Profile::mach3_mill().id, "mach3-mill");
+}
 #[test] fn fixture_is_valid_with_exact_statistics() {
     let r = validate(include_str!("fixtures/machine-valid.nc"),&demo());
     assert_eq!(r.status,Status::Valid,"{:?}",r.diagnostics);

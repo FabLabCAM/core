@@ -37,10 +37,13 @@ impl Library {
 
     pub fn reload(&mut self) -> Result<(), String> {
         self.require_clean()?;
+        let default = Profile::default();
+        self.store.initialize_empty_library(&default)?;
         let profiles = self.store.profiles()?;
         let current = self.draft.as_ref().map(|d| d.profile.id.clone());
         self.draft = current
             .and_then(|id| profiles.iter().find(|p| p.id == id))
+            .or_else(|| profiles.iter().find(|p| p.id == default.id))
             .or(profiles.first())
             .map(|p| Draft::existing(p.clone()));
         self.profiles = profiles;
@@ -55,9 +58,8 @@ impl Library {
 
     pub fn create(&mut self) -> Result<(), String> {
         self.require_clean()?;
-        let mut profile = Profile::mach3_mill();
-        profile.id = self.unique_id("machine")?;
-        profile.name = "Nouvelle machine".into();
+        let mut profile = Profile::default();
+        profile.id = self.unique_id(&profile.id)?;
         self.draft = Some(Draft::new(profile));
         Ok(())
     }
