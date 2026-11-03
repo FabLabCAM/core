@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "id": "mach3-mill-demo",
+  "name": "Mach3 Mill — machine fictive de démonstration",
+  "description": "Valeurs synthétiques pour les tests et le tutoriel ; à remplacer par les réglages mesurés de votre installation.",
+  "location": null,
+  "machine_kind": "mill-3axis",
+  "controller": {
+    "name": "Mach3",
+    "version": null,
+    "dialect": "mach3-mill",
+    "postprocessor": "Mach3Mill"
+  },
+  "sources": [
+    "https://www.machsupport.com/wp-content/uploads/2013/02/Mach3Mill_1.84.pdf#page=110"
+  ],
+  "axes": {
+    "X": {
+      "kind": "linear",
+      "min": -100,
+      "max": 100,
+      "max_feed": 3000
+    },
+    "Y": {
+      "kind": "linear",
+      "min": -100,
+      "max": 100,
+      "max_feed": 3000
+    },
+    "Z": {
+      "kind": "linear",
+      "min": -20,
+      "max": 100,
+      "max_feed": 3000
+    }
+  },
+  "max_feed_mm_min": 3000,
+  "rapid_mm_min": 2000,
+  "acceleration_mm_s2": null,
+  "initial_position_mm": [
+    0,
+    0,
+    5
+  ],
+  "positive_directions": "Convention machine à renseigner ; coordonnées machine en mm.",
+  "work_offsets_mm": {
+    "G54": [
+      0,
+      0,
+      0
+    ]
+  },
+  "spindle": {
+    "min_rpm": 1000,
+    "max_rpm": 24000,
+    "directions": [
+      "cw",
+      "ccw"
+    ]
+  },
+  "defaults": {
+    "units": "G21",
+    "plane": "G17",
+    "distance": "G90",
+    "arc_distance": "G91.1",
+    "feed_mode": "G94",
+    "work_offset": "G54"
+  },
+  "gcodes": {
+    "allow": [
+      "G0",
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G10",
+      "G12",
+      "G13",
+      "G15",
+      "G16",
+      "G17",
+      "G18",
+      "G19",
+      "G20",
+      "G21",
+      "G28",
+      "G28.1",
+      "G30",
+      "G31",
+      "G40",
+      "G41",
+      "G42",
+      "G43",
+      "G49",
+      "G50",
+      "G51",
+      "G52",
+      "G53",
+      "G54",
+      "G55",
+      "G56",
+      "G57",
+      "G58",
+      "G59",
+      "G61",
+      "G61.1",
+      "G64",
+      "G68",
+      "G69",
+      "G70",
+      "G71",
+      "G73",
+      "G80",
+      "G81",
+      "G82",
+      "G83",
+      "G84",
+      "G85",
+      "G86",
+      "G87",
+      "G88",
+      "G89",
+      "G90",
+      "G90.1",
+      "G91",
+      "G91.1",
+      "G92",
+      "G92.1",
+      "G92.2",
+      "G92.3",
+      "G93",
+      "G94",
+      "G95",
+      "G98",
+      "G99"
+    ],
+    "deny": []
+  },
+  "mcodes": {
+    "allow": [
+      "M0",
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6",
+      "M7",
+      "M8",
+      "M9",
+      "M30",
+      "M47",
+      "M48",
+      "M49",
+      "M98",
+      "M99"
+    ],
+    "deny": []
+  },
+  "format": {
+    "line_numbers": "optional",
+    "max_decimals": 6,
+    "comments": [
+      "()",
+      "//",
+      "%"
+    ],
+    "ascii_only": true,
+    "uppercase": false,
+    "max_line_length": 256,
+    "header": null,
+    "end_codes": [
+      "M2",
+      "M30"
+    ]
+  },
+  "safety": {
+    "safe_z_mm": 5,
+    "park_position_mm": null,
+    "tool_change_position_mm": null,
+    "required_preamble": [
+      "G21",
+      "G90",
+      "G17",
+      "G40",
+      "G49",
+      "G80",
+      "G94",
+      "G91.1"
+    ],
+    "allow_helical_arcs": true,
+    "forbid_rapid_below_safe_z": false
+  },
+  "tools": {
+    "changer": "manual",
+    "positions": null,
+    "m6_behavior": "Macros M6Start/M6End selon la configuration locale",
+    "m6_preserves_position": false,
+    "coolant": [
+      "M7",
+      "M8",
+      "M9"
+    ],
+    "table": {}
+  }
+}

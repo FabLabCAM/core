@@ -1,4 +1,5 @@
 //! Post-processeur G-code générique (dialecte proche de Mach3/GRBL, unités mm).
+pub mod machine;
 
 use crate::params::Params;
 use crate::toolpath::{Move, Toolpath};
