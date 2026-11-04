@@ -20,12 +20,20 @@ pub(super) fn pdf(job: &Furniture, layout: &Layout) -> Vec<u8> {
             d.shelves,
             layout.sheets.len()
         ),
-        "Assemblage V1 : panneaux vissés à chants droits. Cotes finies en mm.".into(),
+        if d.composition.is_some() {
+            "Assemblages : voir les liaisons et operations.json. Cotes en mm.".into()
+        } else {
+            "Panneaux vissés à chants droits. Cotes en mm.".into()
+        },
         "".into(),
         "1. Repérer chaque pièce avant de retirer les panneaux de la dalle.".into(),
         "2. Ébavurer et vérifier les cotes ; préparer le vissage adapté au matériau.".into(),
         "3. Placer INF et SUP entre les côtés C1 et C2 ; vérifier l'équerrage.".into(),
-        "4. Monter les tablettes Txx à intervalles réguliers entre INF et SUP.".into(),
+        if d.composition.is_some() {
+            "4. Monter séparations et bacs selon leurs repères et coordonnées.".into()
+        } else {
+            "4. Monter les tablettes Txx à intervalles réguliers entre INF et SUP.".into()
+        },
         if d.back {
             "5. Fixer le DOS rapporté à l'arrière, après contrôle des diagonales.".into()
         } else {
@@ -54,6 +62,25 @@ pub(super) fn pdf(job: &Furniture, layout: &Layout) -> Vec<u8> {
                 p.panel.thickness,
                 i + 1
             ));
+        }
+    }
+    if d.composition.is_some() {
+        lines.push("".into());
+        lines.push("ASSEMBLAGES ET MONTAGES".into());
+        lines.push("Verso avant contours recto ; retournement autour de Y, miroir X.".into());
+        lines.push("Repérage, bridage et origines à définir pour chaque montage.".into());
+        for sheet in &layout.sheets {
+            for p in &sheet.placements {
+                for f in &p.panel.features {
+                    lines.push(format!(
+                        "{} : {:?}, profondeur {:.2} mm{}",
+                        p.panel.id,
+                        f.face,
+                        f.depth,
+                        if f.through { " traversant" } else { " borgne" }
+                    ));
+                }
+            }
         }
     }
     let pages = lines.chunks(38).collect::<Vec<_>>();

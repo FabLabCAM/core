@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub const SCHEMA_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -18,6 +18,8 @@ pub struct Dimensions {
     pub thickness: f64,
     pub back: bool,
     pub shelves: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composition: Option<Box<super::Composition>>,
 }
 impl Default for Dimensions {
     fn default() -> Self {
@@ -28,6 +30,7 @@ impl Default for Dimensions {
             thickness: 20.0,
             back: true,
             shelves: 1,
+            composition: None,
         }
     }
 }
@@ -143,20 +146,38 @@ impl Template {
         if self.limits.max_shelves > 100 || d.shelves > self.limits.max_shelves {
             return Err("Nombre de tablettes hors limites (maximum absolu : 100)".into());
         }
+        let shelves = if d.composition.is_some() {
+            0
+        } else {
+            d.shelves
+        };
         if d.width <= 2.0 * d.thickness
             || d.depth <= d.thickness
-            || d.height <= (2 + d.shelves) as f64 * d.thickness
+            || d.height <= (2 + shelves) as f64 * d.thickness
         {
             return Err(
                 "Dimensions impossibles : les panneaux ne laissent aucun espace intérieur".into(),
             );
+        }
+        if let Some(c) = &d.composition {
+            let scene = super::structure(d)?;
+            let links = super::connections(&scene.panels);
+            if c.joints.keys().any(|id| !links.iter().any(|l| &l.id == id)) {
+                return Err("Liaison sans pièces correspondantes".into());
+            }
+            if c.panel_names
+                .keys()
+                .any(|id| id != "DOS" && !scene.panels.iter().any(|p| &p.id == id))
+            {
+                return Err("Nom de panneau sans élément correspondant".into());
+            }
         }
         Ok(())
     }
 }
 
 pub(super) fn version(v: u32) -> Result<(), String> {
-    if v != SCHEMA_VERSION {
+    if v != 1 && v != SCHEMA_VERSION {
         return Err(format!(
             "Version de format {v} non prise en charge (attendue : {SCHEMA_VERSION})"
         ));

@@ -11,23 +11,39 @@ pub struct Panel {
     /// Assembled cuboid: X = width, Y = depth, Z = height, all in millimetres.
     pub origin: [f64; 3],
     pub size: [f64; 3],
+    pub normal: usize,
+    pub assembly: String,
+    pub uv_min: [f64; 2],
+    pub outline: super::Contour,
+    pub features: Vec<super::MachiningFeature>,
 }
 pub fn panels(template: &Template, d: &Dimensions) -> Result<Vec<Panel>, String> {
+    panels_with_cutter(template, d, 6.0)
+}
+pub fn panels_with_cutter(
+    template: &Template,
+    d: &Dimensions,
+    cutter: f64,
+) -> Result<Vec<Panel>, String> {
     template.check()?;
     template.check_dimensions(d)?;
+    let mut parts = super::structure(d)?.panels;
+    super::joints::machine(&mut parts, d, cutter)?;
+    Ok(parts)
+}
+
+pub(super) fn legacy_panels(d: &Dimensions) -> Vec<Panel> {
     let (w, h, t) = (d.width, d.height, d.thickness);
     let depth = d.depth - if d.back { t } else { 0.0 };
     let mut result = Vec::new();
     let mut add = |id: &str, name: &str, width, height, origin, size| {
-        result.push(Panel {
-            id: id.into(),
-            name: name.into(),
-            width,
-            height,
-            thickness: t,
-            origin,
-            size,
-        })
+        let normal = match id {
+            "C1" | "C2" => 0,
+            "DOS" => 1,
+            _ => 2,
+        };
+        let _ = (width, height);
+        result.push(Panel::rectangular(id, name, origin, size, normal))
     };
     add(
         "C1",
@@ -75,5 +91,5 @@ pub fn panels(template: &Template, d: &Dimensions) -> Result<Vec<Panel>, String>
     if d.back {
         add("DOS", "Dos rapporté", w, h, [0.0, depth, 0.0], [w, t, h]);
     }
-    Ok(result)
+    result
 }

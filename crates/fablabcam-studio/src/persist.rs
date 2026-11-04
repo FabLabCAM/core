@@ -89,6 +89,10 @@ pub fn save(p: &Project) -> String {
         let json = serde_json::to_string(profile).expect("Profile has JSON-serializable fields");
         ext += &format!("<FurnitureMachine>{}</FurnitureMachine>\n", esc(&json));
     }
+    if !p.furniture_requirements.is_empty() {
+        let json=serde_json::to_string(&p.furniture_requirements).expect("validated fabrication requirements");
+        ext += &format!("<FurnitureOperations>{}</FurnitureOperations>\n",esc(&json));
+    }
     if let Some(s) = p.stock {
         ext += &format!("<Stock MinX=\"{}\" MinY=\"{}\" MaxX=\"{}\" MaxY=\"{}\" Top=\"{}\" Bottom=\"{}\"/>\n", s.min[0], s.min[1], s.max[0], s.max[1], s.top, s.bottom);
     }
@@ -187,6 +191,11 @@ pub fn load_with_notes(xml: &str) -> Result<(Project, Vec<String>), String> {
     let f = |n: roxmltree::Node, k: &str| n.attribute(k).and_then(|v| v.parse::<f64>().ok());
     for n in root.children().filter(|n| n.is_element()) {
         match n.tag_name().name() {
+            "FurnitureOperations" => {
+                if !p.furniture_requirements.is_empty(){return Err("Plusieurs plans FurnitureOperations".into());}
+                p.furniture_requirements=serde_json::from_str(n.text().unwrap_or("")).map_err(|e|format!("Plan de fabrication invalide : {e}"))?;
+                for requirement in &p.furniture_requirements {requirement.check()?;}
+            }
             "FurnitureMachine" => {
                 if p.machine_profile.is_some() { return Err("Plusieurs profils FurnitureMachine dans le document".into()); }
                 p.machine_profile = Some(fablabcam_cam::gcode::machine::Profile::from_json(n.text().unwrap_or(""))?);

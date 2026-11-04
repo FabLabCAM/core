@@ -1,4 +1,4 @@
-use super::{panels, Furniture, Panel};
+use super::{panels_with_cutter, Furniture, Panel};
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
@@ -32,7 +32,7 @@ struct Rect {
 pub fn place(job: &Furniture) -> Result<Layout, String> {
     job.check()?;
     let setup = &job.setup;
-    let mut parts = panels(&job.template, &job.dimensions)?;
+    let mut parts = panels_with_cutter(&job.template, &job.dimensions, job.setup.cutter)?;
     parts.sort_by(|a, b| {
         (b.width * b.height)
             .total_cmp(&(a.width * a.height))
@@ -65,6 +65,9 @@ pub fn place(job: &Furniture) -> Result<Layout, String> {
         }
         let mut selected = None;
         for (si, rects) in free.iter().enumerate() {
+            if (sheets[si].placements[0].panel.thickness - panel.thickness).abs() > 1e-8 {
+                continue;
+            }
             for (ri, &r) in rects.iter().enumerate() {
                 for rot in [false, true]
                     .into_iter()
@@ -115,7 +118,25 @@ pub fn place(job: &Furniture) -> Result<Layout, String> {
                 h: r.h - ph - gap,
             });
         }
-        sheets[si].occupied_ratio += pw * ph / (w * h);
+        let silhouette = super::panel_entity(&panel)
+            .to_pline()
+            .expect("panel outline");
+        let holes = panel
+            .features
+            .iter()
+            .filter(|f| f.through && !f.in_outline)
+            .map(|f| {
+                let p = fablabcam_geom::pline_from(
+                    &f.contour
+                        .iter()
+                        .map(|v| (v[0], v[1], v[2]))
+                        .collect::<Vec<_>>(),
+                    true,
+                );
+                fablabcam_geom::area(&p)
+            })
+            .sum::<f64>();
+        sheets[si].occupied_ratio += (fablabcam_geom::area(&silhouette) - holes).max(0.0) / (w * h);
         sheets[si].placements.push(Placement {
             panel,
             x: r.x,

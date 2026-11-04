@@ -67,7 +67,7 @@ fn invalid_imports_and_corrupt_catalog_leave_library_untouched() {
     let doc = Document::Template(Template::cabinet());
     let json = doc.to_json().unwrap();
     assert!(
-        Document::from_json(&json.replace("\"schema_version\": 1", "\"schema_version\": 99"))
+        Document::from_json(&json.replace("\"schema_version\": 2", "\"schema_version\": 99"))
             .unwrap_err()
             .contains("Version de format")
     );

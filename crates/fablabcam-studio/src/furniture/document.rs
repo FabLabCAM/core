@@ -81,9 +81,30 @@ impl Document {
         *doc.name_mut() = format!("{name} — copie");
         doc
     }
+    /// Explicit save/export promotion; loading never writes back to the source.
+    pub fn promote_schema(&mut self) {
+        match self {
+            Self::Template(t) => t.schema_version = super::SCHEMA_VERSION,
+            Self::Furniture(f) => {
+                f.schema_version = super::SCHEMA_VERSION;
+                f.template.schema_version = super::SCHEMA_VERSION;
+            }
+        }
+    }
+    pub fn as_template(&self) -> Template {
+        let mut t = self.template().clone();
+        t.id = new_id();
+        t.revision = 1;
+        t.schema_version = super::SCHEMA_VERSION;
+        t.name = format!("Modèle — {}", self.name());
+        t.defaults = self.dimensions().clone();
+        t
+    }
     pub fn to_json(&self) -> Result<String, String> {
         self.check()?;
-        serde_json::to_string_pretty(self)
+        let mut doc = self.clone();
+        doc.promote_schema();
+        serde_json::to_string_pretty(&doc)
             .map(|s| s + "\n")
             .map_err(|e| e.to_string())
     }
