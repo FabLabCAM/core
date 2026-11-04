@@ -51,3 +51,20 @@ Le domaine `furniture` sépare `composition` (arbre, épaisseurs, orientations,
 validation et copie), `joints` (contacts et géométrie), placement et fabrication.
 L'UI ne calcule aucune découpe ; elle modifie le document, enregistre l'historique
 et affiche les résultats du même moteur utilisé par la CLI. Voir l'[ADR 0004](adr/0004-furniture-composer.md).
+
+## Frontière des identifiants Rhai
+
+L’API `fablabcam_studio::script` est commune au Studio et à la CLI. Les entiers
+Rhai sont signés sur 64 bits ; les références de formes du projet sont des `u32`.
+Une conversion unique et vérifiée (`u32::try_from`) refuse les valeurs hors plage
+avant l’appel métier, aussi pour chaque élément d’un tableau. Une conversion
+avec `as` pourrait tronquer un identifiant et viser une autre forme. La plage
+numérique `0..=4294967295` ne garantit pas l’existence de la référence : ce
+contrôle reste dans `Project`.
+
+Le moteur exécute le script sur une copie. L’éditeur ne remplace le projet et
+son historique qu’en cas de succès ; la CLI n’écrit la sortie qu’après réussite.
+Les tests de l’issue #19 vérifient les erreurs de conversion, les historiques
+Annuler/Rétablir et la préservation des fichiers, y compris une sortie existante
+ou égale à l’entrée. Ce correctif ne change ni les formats ni l’allocation des
+identifiants du projet.

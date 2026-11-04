@@ -56,12 +56,17 @@ fn num(d: &Dynamic) -> Res<f64> {
     }
 }
 
+fn shape_id(i: i64) -> Res<u32> {
+    // Ne pas tronquer : un entier hors plage pourrait sinon viser une autre forme.
+    u32::try_from(i).or_else(|_| err(format!("identifiant de forme hors plage (0..={}) : {i}", u32::MAX)))
+}
+
 fn ids(d: &Dynamic) -> Res<Vec<u32>> {
     if let Ok(i) = d.as_int() {
-        return Ok(vec![i as u32]);
+        return Ok(vec![shape_id(i)?]);
     }
     match d.clone().try_cast::<Array>() {
-        Some(a) => a.iter().map(|x| x.as_int().map(|i| i as u32).or_else(|_| err("identifiant de forme attendu"))).collect(),
+        Some(a) => a.iter().map(|x| x.as_int().or_else(|_| err("identifiant de forme attendu")).and_then(shape_id)).collect(),
         None => err("identifiant ou tableau d'identifiants attendu"),
     }
 }

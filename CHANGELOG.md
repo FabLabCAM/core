@@ -1,5 +1,18 @@
 # Notes de version
 
+## 0.6.1 — 2026-11-04
+
+### Identifiants de formes dans les scripts — [#19](https://github.com/FabLabCAM/core/issues/19)
+
+- Les scripts Rhai refusent les identifiants négatifs ou supérieurs à `u32::MAX`,
+  seuls comme dans un tableau, avant toute conversion. Une valeur hors plage
+  ne peut plus désigner une autre forme par troncature.
+- Le diagnostic conserve la valeur fautive et la position dans le script. Les
+  identifiants valides et les erreurs de forme inexistante restent inchangés.
+- Tests de régression : dix fonctions, tableaux mixtes, bornes, types invalides,
+  projet et historique préservés ; code de retour CLI et fichiers inchangés en échec.
+- Mémoire, architecture, guide Rhai et suivi des versions actualisés.
+
 ## 0.6.0 — 2026-11-04
 
 ### Composer des meubles et choisir les assemblages — [#17](https://github.com/FabLabCAM/core/issues/17)
