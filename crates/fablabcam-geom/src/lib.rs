@@ -4,7 +4,7 @@
 //! `inset` réduit une forme fermée, `outset` l'agrandit, quel que soit son sens de rotation.
 
 use cavalier_contours::core::math::Vector2;
-use cavalier_contours::polyline::{BooleanOp, PlineOrientation};
+use cavalier_contours::polyline::{BooleanOp, PlineOffsetOptions, PlineOrientation};
 
 pub use cavalier_contours::polyline::{PlineSource, PlineSourceMut, PlineVertex, Polyline};
 
@@ -57,7 +57,7 @@ pub fn inset(p: &Pline, distance: f64) -> Vec<Pline> {
     if !p.is_closed() {
         return Vec::new();
     }
-    ccw(p).parallel_offset(distance)
+    offset_without_redundant_vertices(&ccw(p), distance)
 }
 
 /// Agrandit la forme fermée de `distance` (> 0).
@@ -65,7 +65,21 @@ pub fn outset(p: &Pline, distance: f64) -> Vec<Pline> {
     if !p.is_closed() {
         return Vec::new();
     }
-    ccw(p).parallel_offset(-distance)
+    offset_without_redundant_vertices(&ccw(p), -distance)
+}
+
+/// ARCHITECTURE NOTE — DXF contours can repeat the closing vertex and contain
+/// aligned microsegments. Normalize a copy with the kernel's tolerance before
+/// offsetting; otherwise cavalier_contours 0.3 can build NaN bounds (#24).
+/// Shared with the normalization prepared for issue #23.
+fn offset_without_redundant_vertices(p: &Pline, distance: f64) -> Vec<Pline> {
+    let options = PlineOffsetOptions::default();
+    // remove_redundant alone can collapse a short contour starting with a
+    // repeated position in 0.3. Remove repeats first, retaining outgoing bulges.
+    let distinct = p.remove_repeat_pos(options.pos_equal_eps);
+    let contour = distinct.as_ref().unwrap_or(p);
+    let cleaned = contour.remove_redundant(options.pos_equal_eps);
+    cleaned.as_ref().unwrap_or(contour).parallel_offset_opt(distance, &options)
 }
 
 /// Aire absolue d'une forme fermée.
@@ -269,7 +283,7 @@ pub fn offset_open(p: &Pline, distance: f64) -> Vec<Pline> {
     if p.is_closed() {
         return Vec::new();
     }
-    p.parallel_offset(distance)
+    offset_without_redundant_vertices(p, distance)
 }
 
 /// Union de `a` et `b`. Si les formes sont disjointes, les deux sont conservées.
