@@ -22,7 +22,9 @@
   rencontrées lors de la reproduction depuis le DXF de #23.
 - Régressions sur les modes initiaux, mm/pouces et centres absolus ;
   [diagnostic](docs/qa/issue-23.md). Bloc dégénéré identifié dans trois KO ;
-  retour Mach3 du correctif et cause du quatrième KO encore à confirmer.
+  retour Mach3 du correctif encore à confirmer. Pour `lyon3.v1`, le refus du
+  premier arc en IJ absolu hérité est reproduit ; G91.1 corrige cette dépendance
+  dans les trois exports, désormais couverts par une régression dédiée.
 
 ## 0.7.0 — 2026-11-04
 

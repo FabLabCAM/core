@@ -17,8 +17,13 @@
   confondre un écart sous tolérance et un arc non dégénéré. LF reste admis.
 - Les deux émetteurs contrôlent les coordonnées formatées et partagent la
   subdivision des arcs dégénérés ; conserver cercles réels, arcs majeurs et Z.
-- TODO(agent) : confirmer les copies ARCS_A_TESTER dans Mach3 avant clôture ;
-  `lyon3.v1` ne contient pas ce défaut et exige un diagnostic distinct.
+- `lyon3.v1` : aucun arc nul/hors tolérance. En IJ absolu hérité, le premier
+  arc (ligne physique 145) est refusé ; G91.1 seul supprime l'erreur de lecture
+  dans l'analyse complète, sans changer aucun mouvement. Régression CAM/Studio/CBPP.
+- TODO(agent) : confirmer ARCS_A_TESTER et la copie IJ seule de `lyon3.v1` dans
+  Mach3 avant clôture. L'utilisateur confirme le même type d'erreur, sans ligne
+  ni mode IJ réel ; ne pas transformer cette reproduction conditionnelle en
+  certitude sur l'installation. Courses et origine restent inconnues.
 
 ## Version 0.7.0 : assistant natif, issue #20
 

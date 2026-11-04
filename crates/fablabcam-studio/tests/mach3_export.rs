@@ -68,3 +68,48 @@ fn configurable_post_declares_the_selected_center_mode() {
     let r = validate(&out.gcode, &p);
     assert_eq!(r.status, Status::Valid, "{:#?}", r.diagnostics);
 }
+
+#[test]
+fn lyon_v1_first_arc_requires_incremental_centers_in_every_export() {
+    use fablabcam_cam::{Move, Toolpath};
+    use fablabcam_cam::gcode::machine::Severity;
+    // Reduced from the first arc (physical line 145). Unknown machine limits
+    // stay unknown; this checks interpretation, not real machine clearance.
+    let mut p = Profile::from_json(include_str!("../../../profiles/mach3-mill.json")).unwrap();
+    p.initial_position_mm = Some([0., 0., 10.]);
+    p.work_offsets_mm.insert("G54".into(), [0., 0., 0.]);
+    p.tools.m6_preserves_state = true;
+    let required = p.safety.required_preamble.clone();
+    p.safety.required_preamble = ["G21", "G90", "G17", "G94"].map(str::to_owned).to_vec();
+    let old = "G21 G90 G17 G94\nM6 T1\nG0 X781.243 Y198.202 Z3\nG1 Z-1 F500\nG2 X782.743 Y196.702 I0 J-1.5 F1000\nM30\n";
+    p.defaults.arc_distance = "G90.1".into();
+    let bad = validate(old, &p);
+    assert_eq!(bad.status, Status::Invalid);
+    assert!(bad.diagnostics.iter().any(|d| d.code == "arc" && d.line == 5));
+    p.defaults.arc_distance = "G91.1".into();
+    let reference = validate(old, &p);
+    assert_eq!(reference.status, Status::Incomplete);
+    assert!(!reference.diagnostics.iter().any(|d| d.severity == Severity::Error));
+    let expected = 4. + 1.5 * std::f64::consts::FRAC_PI_2;
+    assert!((reference.statistics.cutting_length_mm - expected).abs() < 1e-9);
+
+    let mut s = studio(false);
+    let computed = s.computed.values_mut().next().unwrap();
+    computed.path = Some(Toolpath { moves: vec![
+        Move::Rapid { x: Some(781.243), y: Some(198.202), z: Some(3.) },
+        Move::Feed { x: None, y: None, z: Some(-1.), f: 500. },
+        Move::Arc { ccw: false, x: 782.743, y: 196.702, z: None, i: 0., j: -1.5, f: 1000. },
+    ] });
+    let direct = fablabcam_cam::emit(computed.path.as_ref().unwrap(), computed.params.as_ref().unwrap(), &Post::default());
+    p.safety.required_preamble = required;
+    for gcode in [direct, s.gcode(), s.gcode_with_post(&PostDef::default()).gcode] {
+        for mode in ["G90.1", "G91.1"] {
+            p.defaults.arc_distance = mode.into();
+            let r = validate(&gcode, &p);
+            assert_eq!(r.status, Status::Incomplete, "{:?}\n{gcode}", r.diagnostics);
+            assert!(!r.diagnostics.iter().any(|d| d.severity == Severity::Error));
+            assert!((r.statistics.cutting_length_mm - expected).abs() < 1e-9);
+            assert_eq!(r.statistics.bounds_max_mm.unwrap()[0], 782.743);
+        }
+    }
+}

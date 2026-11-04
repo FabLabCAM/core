@@ -30,7 +30,7 @@ tolérance.
 
 Les photos expliquent le refus sur ce bloc ; aucun essai du correctif dans Mach3
 ou sur CNC n'a été effectué ici. `lyon3.v1` ne contient pas cette dégénérescence :
-son blocage reste à diagnostiquer séparément. Ne pas fermer l'issue avant les
+son analyse dédiée ci-dessous reproduit un refus sous un mode IJ initial absolu. Ne pas fermer l'issue avant les
 retours sur les fichiers corrigés.
 
 ## Mesures sur les fichiers originaux
@@ -67,6 +67,63 @@ avant le changement (§10.12). Les KO sélectionnent T1, les références T0.
 Les photos identifient ici une erreur d'arc loin de M6 ; cette hypothèse initiale
 n'explique pas le bloc signalé. Ne pas supprimer M6 ou changer le numéro d'outil pour masquer
 un arrêt attendu.
+
+## Analyse dédiée de `lyon3.v1`
+
+L'utilisateur confirme « même message » pour ce fichier. Il n'a pas précisé
+la ligne d'arrêt ni le mode IJ réel : la reproduction suivante identifie un
+défaut de dépendance à l'état initial, sans prouver le réglage de son Mach3.
+
+L'audit complet porte sur 4 258 lignes et 1 072 arcs G2. Aucun rayon nul, aucune
+extrémité confondue, aucun arc majeur ; tous les arcs ont un rayon
+initial proche de 1,5 mm et un balayage maximal de 90°. L'écart maximal des
+rayons vaut 0,000995669 mm (ligne 462, puis aux passes suivantes), sous la
+limite documentée de 0,002 mm. Les arcs sont conservés ; la correction cible
+leur convention de centre.
+
+En revanche, le préambule `G21 G90 G17 G94` omet G91.1. Le premier arc, ligne
+physique 145, suit la position `(781.243, 198.202)` :
+
+```gcode
+G2 X782.743 Y196.702 I0 J-1.5
+```
+
+- IJ incrémental : centre `(781.243, 196.702)`, rayons 1,5 / 1,5 mm, quart de cercle.
+- IJ absolu : centre `(0, -1.5)`, rayons 806,363140 / 807,446987 mm ; refus d'arc
+  reproduit dès ce bloc. G90 établit les extrémités absolues, pas les centres IJ.
+
+Le programme complet a été relu avec les deux états initiaux, une origine
+fictive connue et M6 supposé préserver les modes. Pour isoler la sémantique des
+arcs, le profil de diagnostic exige seulement les quatre modes présents dans
+l'original ; aucun réglage machine réel n'est modifié ou présumé.
+
+| Variante | IJ initial absolu | IJ initial incrémental |
+|---|---|---|
+| Original | Erreur d'arc à la ligne 145 | Aucune erreur d'arc |
+| Seul G91.1 ajouté à la ligne 2 | Aucune erreur d'arc | Aucune erreur d'arc |
+| Préambule complet de la PR | Aucune erreur d'arc | Aucune erreur d'arc |
+
+Tous les cas sans erreur restent **incomplets**, faute de données physiques.
+Leur longueur de coupe calculée est identique (7 681,141254 mm) ; les mouvements
+sont strictement identiques octet pour octet. La copie
+`lyon3.v1.IJ_INCREMENTAL_A_TESTER.nc` isole l'ajout de G91.1, avec manifeste et
+rapports comparatifs. Elle sert au rechargement dans Mach3, sans lancement
+d'usinage. Le préambule complet était déjà présent dans la correction de #25 ;
+le nouveau test `lyon_v1_first_arc_requires_incremental_centers_in_every_export`
+verrouille ce cas dans les exports CAM, Studio et CBPP.
+
+L'enveloppe dans le repère programme est X −0,743 à 782,743 mm, Y environ
+−0,124027 à 198,202 mm et Z −3,6 à 3 mm. Les rapports incluent en plus une
+position initiale fictive à Z10. Une limite machine ne peut pas être déduite de
+ces seules coordonnées : il manque l'origine de travail, le homing et les
+bornes configurées. Aucun décalage, changement d'échelle, outil ou suppression
+M6 n'est appliqué pour masquer un éventuel autre blocage.
+
+**Conclusion :** l'omission du mode IJ est un défaut réel, corrigé et reproduit
+sur le premier arc de `lyon3.v1`. Son rôle dans le refus de cette installation
+reste à confirmer par rechargement de la copie ou par la ligne exacte de l'erreur.
+Si elle reste refusée, comparer ce bloc et l'état IJ effectif, y compris les
+macros M6 ; ne pas annoncer une résolution sur la base de l'analyse seule.
 
 ## Défaut corrigé dans l'exporteur
 
@@ -165,11 +222,13 @@ vérifie que 0,00254 mm en G21 et 0,0003 pouce en G20 restent refusés.
 Le profil synthétique suppose explicitement que M6 préserve l'état ; cette
 hypothèse de test ne qualifie aucune macro réelle.
 
-Résultats locaux du 4 novembre 2026 (macOS Apple Silicon) : **402 tests réussis**,
+Résultats locaux du 4 novembre 2026 (macOS Apple Silicon) : **403 tests réussis**,
 Clippy workspace/all-targets avec `-D warnings` réussi. Les dix tests précédents restent couverts. Cinq tests supplémentaires couvrent
 le bloc exact, les deux sens, les centres absolus/incrémentaux, trois/quatre
 décimales, les cercles conservés et les arcs majeurs/hélicoïdaux. Les deux
-régressions d’export ont échoué avant correction. Construction CLI, exemple public
+régressions d’export ont échoué avant correction. Le cas dédié `lyon3.v1` ajoute
+un test de dépendance IJ sur les trois exports avec contrôle du rayon et de
+la longueur du quart de cercle. Construction CLI, exemple public
 `plaque.rhai` → CB → NC avec le gabarit de diagnostic → SVG vérifiés. Guide :
 MkDocs strict, 36 pages sans lien local manquant et rendu du diagnostic inspecté.
 
@@ -188,7 +247,7 @@ résultats n'est une qualification machine.
 
 Recharger `projet_test002.ARCS_A_TESTER.nc` dans Mach3 et vérifier la disparition
 de l'erreur d'arc pendant la lecture, sans lancer l'usinage. Consigner le résultat
-pour les trois fichiers concernés. Obtenir séparément le message/la ligne de
-`lyon3.v1` s'il reste refusé. Les copies précédentes `MODES_A_TESTER` sont
+pour les trois fichiers concernés. Recharger aussi la copie IJ dédiée de `lyon3.v1` ; obtenir sa ligne exacte si
+elle reste refusée. Les copies précédentes `MODES_A_TESTER` sont
 insuffisantes pour corriger le bloc photographié. La validation des paramètres
 et de l'usinage reste distincte ; aucune nouvelle version n'est publiée ici.
