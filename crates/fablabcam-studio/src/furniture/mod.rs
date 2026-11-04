@@ -33,6 +33,7 @@ pub use setup::*;
 /// Shared by native and CLI exports: a furniture CAM project never bypasses its
 /// attached machine just because it was saved/reopened as a CB document.
 pub fn check_cam_export(studio: &crate::Studio, code: &str) -> Result<(), String> {
+    studio.check_computed()?;
     use fablabcam_cam::gcode::machine::{validate, Severity, Status};
     cam_plan::check_requirements(studio.project())?;
     let Some(profile) = &studio.project().machine_profile else {

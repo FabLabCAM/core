@@ -16,6 +16,7 @@ mod machine_ui;
 mod furniture_ui;
 mod assistant_ui;
 mod script_job;
+mod diagnostics_ui;
 use desktop::Prefs;
 
 const HELP: &str = "fablabcam-studio-ui — éditeur 2D FabLabCAM
@@ -23,9 +24,15 @@ const HELP: &str = "fablabcam-studio-ui — éditeur 2D FabLabCAM
 USAGE  fablabcam-studio-ui [fichier.cb|.dxf|.svg] [options]
   --tab machines   ouvre la bibliothèque des profils machine
   --tab meubles    ouvre le module de meubles paramétriques
+  --tab diagnostics  ouvre les préférences de diagnostic
   --demo-dessin     dessin d'exemple (plusieurs types de formes)
   --select <a,b>    sélectionne les formes de rang a, b… (1 = première)
   --smoke <n>       dessine n images puis quitte (test de bon fonctionnement)
+  --diagnostics    journal détaillé pour cette session
+  --diagnostics-dir <dossier>  stockage isolé des diagnostics
+  --log-level <normal|debug>  niveau du journal
+  --backtrace <off|full>      traces des erreurs fatales
+  --core-on-panic   arme un core macOS (session courante, si autorisé)
 ";
 
 /// Action différée jusqu'à la réponse « modifications non enregistrées ».
@@ -257,6 +264,7 @@ struct App {
     saved: Project,
     prefs: Prefs,
     show_prefs: bool,
+    diagnostics_ui: diagnostics_ui::DiagnosticsUi,
     confirm: Option<Pending>,
     allow_close: bool,
     title: String,
@@ -398,6 +406,7 @@ impl App {
             saved,
             prefs,
             show_prefs: false,
+            diagnostics_ui: diagnostics_ui::DiagnosticsUi::default(),
             confirm: None,
             allow_close: false,
             title: String::new(),
@@ -952,6 +961,9 @@ impl App {
                 self.focus = Focus::Op;
                 self.side = SideTab::Projet;
                 self.status = format!("opération « {name} » ajoutée{created}");
+                if let Some(error) = self.studio.computed.get(&id).and_then(|c| c.error.as_ref()) {
+                    self.status = format!("Attention : opération #{id} non calculée : {error}");
+                }
             }
             Err(e) => self.status = format!("Attention : {e}"),
         }
@@ -1107,7 +1119,7 @@ impl App {
     fn prefs_window(&mut self, ctx: &egui::Context) {
         let mut open = self.show_prefs;
         let mut pick_post = false;
-        egui::Window::new("Préférences").open(&mut open).resizable(false).collapsible(false).show(ctx, |ui| {
+        egui::Window::new("Préférences").open(&mut open).default_width(580.0).resizable(true).collapsible(false).vscroll(true).show(ctx, |ui| {
             ui.checkbox(&mut self.snap, "magnétisme");
             ui.horizontal(|ui| {
                 ui.label("pas du magnétisme (mm)");
@@ -1132,6 +1144,8 @@ impl App {
             if let Some(f) = Prefs::file() {
                 ui.small(format!("enregistrées dans {}", f.display()));
             }
+            ui.separator();
+            self.diagnostics_ui.show(ui);
         });
         self.show_prefs = open;
         if pick_post {
@@ -3367,6 +3381,22 @@ fn main() {
         print!("{HELP}");
         return;
     }
+    // Install diagnostics before opening the drawing or computing an operation;
+    // Finder launches need the same persistent reports as terminal launches.
+    let diagnostic_options = match fablabcam_studio::diagnostics::cli::Options::parse(&mut args) {
+        Ok(options) => options,
+        Err(error) => { eprintln!("{error}"); std::process::exit(2); }
+    };
+    let diagnostic_notice = (|| -> Result<(), String> {
+        let directory = diagnostic_options.directory.clone()
+            .or_else(fablabcam_studio::diagnostics::default_directory)
+            .ok_or("Dossier des diagnostics introuvable")?;
+        let service = fablabcam_studio::diagnostics::initialize(directory)?;
+        service.configure(&diagnostic_options.settings(service.settings()), false)?;
+        if diagnostic_options.core_on_panic { service.set_core_armed(true)?; }
+        Ok(())
+    })().err();
+    if let Some(error) = &diagnostic_notice { eprintln!("[FabLabCAM diagnostics] {error}"); }
     let mut take = |name: &str, with_value: bool| -> Option<String> {
         let i = args.iter().position(|a| a == name)?;
         let v = if with_value { args.get(i + 1).cloned() } else { Some(String::new()) };
@@ -3403,10 +3433,12 @@ fn main() {
         }
     }
     let mut app = App::new(project, smoke);
+    app.diagnostics_ui.startup_notice = diagnostic_notice;
+    if let Some(error) = &app.diagnostics_ui.startup_notice { app.status = format!("Attention : diagnostics : {error}"); }
     if path.to_lowercase().ends_with(".cb") && std::path::Path::new(&path).is_file() {
         app.doc_path = Some(PathBuf::from(&path));
     }
-    app.argv_files = std::env::args().skip(1).filter_map(|a| std::path::Path::new(&a).canonicalize().ok()).filter(|p| p.is_file()).collect();
+    app.argv_files = args.iter().filter_map(|a| std::path::Path::new(&a).canonicalize().ok()).filter(|p| p.is_file()).collect();
     app.path = path;
     match tab.as_deref() {
         Some("tools") | Some("outils") | Some("systeme") => app.side = SideTab::Systeme,
@@ -3414,6 +3446,7 @@ fn main() {
         Some("machines") => app.machines.open(),
         Some("meubles") | Some("furniture") => app.furniture.open(),
         Some("3d") => app.view = View::Simulation,
+        Some("diagnostics") => app.show_prefs = true,
         _ => {}
     }
     if let Some(a) = at {
@@ -3446,6 +3479,8 @@ fn main() {
         }),
     ) {
         eprintln!("erreur d'affichage : {e}");
+        if let Some(service) = fablabcam_studio::diagnostics::active() { service.shutdown(); }
         std::process::exit(1);
     }
+    if let Some(service) = fablabcam_studio::diagnostics::active() { service.shutdown(); }
 }

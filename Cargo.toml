@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/fablabcam-geom", "crates/fablabcam-model", "crates/fablabcam-cam", "crates/fablabcam-backplot", "crates/fablabcam-cli", "crates/fablabcam-view", "crates/fablabcam-studio"]
 
 [workspace.package]
-version = "0.7.0"
+version = "0.7.1"
 edition = "2021"
 rust-version = "1.89"
 license = "Apache-2.0"
@@ -17,3 +17,9 @@ debug-assertions = false
 debug-assertions = false
 [profile.dev.package.winit]
 debug-assertions = false
+
+# Optimized reproduction build with symbols for LLDB/backtraces.
+[profile.diagnostic]
+inherits = "release"
+debug = 2
+strip = "none"

@@ -11,6 +11,7 @@ pub mod cad;
 pub mod cbnative;
 pub mod curves;
 pub mod dxf;
+pub mod diagnostics;
 pub mod edit;
 pub mod feeds;
 pub mod history;
