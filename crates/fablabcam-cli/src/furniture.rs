@@ -4,7 +4,7 @@ use std::path::Path;
 
 pub const HELP:&str="FabLabCAM — meubles paramétriques (millimètres)\n\n\
 fablabcam furniture template cabinet|shelving -o modele.fcm-template.json\n\
-fablabcam furniture new modele.fcm-template.json -o meuble.fcm.json [--width mm] [--depth mm] [--height mm] [--thickness mm] [--shelves n] [--profile machine.json]\n\
+fablabcam furniture new modele.fcm-template.json -o meuble.fcm.json [--width mm] [--depth mm] [--height mm] [--thickness mm] [--shelves n] [--profile machine.json] [--columns n --rows n] [--bins yes]\n\
 fablabcam furniture validate document.json\n\
 fablabcam furniture plan meuble.fcm.json\n\
 fablabcam furniture pack meuble.fcm.json -o fabrication.zip\n\n\
@@ -28,6 +28,9 @@ pub fn run(args: &[String]) -> Result<String, String> {
                 "--thickness",
                 "--shelves",
                 "--profile",
+                "--columns",
+                "--rows",
+                "--bins",
             ]
             .contains(&pair[0].as_str()),
             "template" | "pack" => pair[0] == "-o",
@@ -77,6 +80,40 @@ pub fn run(args: &[String]) -> Result<String, String> {
             if let Some(s) = options.get("--shelves") {
                 f.dimensions.shelves = s.parse().map_err(|_| "Nombre de tablettes invalide")?;
             }
+            if options.contains_key("--columns") || options.contains_key("--rows") {
+                let parse = |key: &str| {
+                    options
+                        .get(key)
+                        .copied()
+                        .unwrap_or("1")
+                        .parse::<usize>()
+                        .map_err(|_| format!("Nombre invalide : {key}"))
+                };
+                f.dimensions.composition = Some(Box::new(furniture::Composition::grid(
+                    parse("--columns")?,
+                    parse("--rows")?,
+                )?));
+            }
+            if let Some(value) = options.get("--bins") {
+                if *value != "yes" && *value != "no" {
+                    return Err("--bins attend yes ou no".into());
+                }
+                if *value == "yes" {
+                    if f.dimensions.composition.is_none() {
+                        f.dimensions.composition = Some(Box::new(
+                            furniture::Composition::from_dimensions(&f.dimensions)?,
+                        ));
+                    }
+                    let scene = furniture::structure(&f.dimensions)?;
+                    let root = &mut f.dimensions.composition.as_mut().unwrap().root;
+                    for cell in scene.cells.iter().filter(|c| c.leaf) {
+                        root.find_mut(&cell.id).unwrap().bin = Some(furniture::Bin {
+                            depth: (cell.size[1] - 2.0).min(250.0),
+                            ..furniture::Bin::default()
+                        });
+                    }
+                }
+            }
             if let Some(s) = options.get("--profile") {
                 let json = std::fs::read_to_string(s).map_err(|e| e.to_string())?;
                 f.setup.machine = fablabcam_cam::gcode::machine::Profile::from_json(&json)?;
@@ -90,8 +127,12 @@ pub fn run(args: &[String]) -> Result<String, String> {
         "validate" => {
             let doc = furniture::read_document(Path::new(source))?;
             Ok(format!(
-                "Document valide : {} · format 1 · modèle r{}\n",
+                "Document valide : {} · format {} · modèle r{}\n",
                 doc.name(),
+                match &doc {
+                    Document::Template(t) => t.schema_version,
+                    Document::Furniture(f) => f.schema_version,
+                },
                 doc.template().revision
             ))
         }

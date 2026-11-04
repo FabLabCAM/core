@@ -1,6 +1,6 @@
 use super::{Document, FurnitureUi, Pending};
 use eframe::egui;
-use fablabcam_studio::furniture::panels;
+use fablabcam_studio::furniture::panels_with_cutter;
 
 impl FurnitureUi {
     pub(super) fn editor(&mut self, ui: &mut egui::Ui) {
@@ -26,9 +26,20 @@ impl FurnitureUi {
                 self.pending = Some(Pending::Duplicate);
             }
             ui.checkbox(&mut self.exploded, "Vue éclatée");
+            ui.checkbox(&mut self.composing, "Composer le meuble");
+            if !draft.document.is_template() && ui.button("Enregistrer comme modèle…").clicked()
+            {
+                self.pending = Some(Pending::New(draft.document.as_template()));
+            }
         });
         if let Document::Template(t) = &mut draft.document {
-            super::fields::dimensions(ui, &mut t.defaults);
+            if self.composing {
+                ui.collapsing("Dimensions extérieures", |ui| {
+                    super::fields::dimensions(ui, &mut t.defaults)
+                });
+            } else {
+                super::fields::dimensions(ui, &mut t.defaults);
+            }
             super::fields::limits(ui, t);
             ui.weak(format!(
                 "Révision actuelle : {} · une modification enregistrée crée la révision suivante",
@@ -45,13 +56,29 @@ impl FurnitureUi {
             });
             if let Document::Furniture(f) = &mut draft.document {
                 match self.step {
-                    0 => super::fields::dimensions(ui, &mut f.dimensions),
+                    0 => {
+                        if self.composing {
+                            ui.collapsing("Dimensions extérieures", |ui| {
+                                super::fields::dimensions(ui, &mut f.dimensions)
+                            });
+                        } else {
+                            super::fields::dimensions(ui, &mut f.dimensions);
+                        }
+                    }
                     1 => super::fields::setup(ui, &mut f.setup, &self.machines),
                     2 => self.layout_panel(ui, f),
                     _ => self.dossier_panel(ui, f),
                 }
             }
         }
+        if self.composing && (self.step == 0 || draft.document.is_template()) {
+            let cutter = match &draft.document {
+                Document::Furniture(f) => f.setup.cutter,
+                _ => 6.0,
+            };
+            self.composer.show(ui, &mut draft.document, cutter);
+        }
+        draft.document.reconcile_edit(&previous);
         if let Err(e) = draft.document.check() {
             ui.colored_label(egui::Color32::LIGHT_RED, e);
         }
@@ -62,23 +89,37 @@ impl FurnitureUi {
                 draft.document.dimensions(),
                 self.exploded,
                 260.0,
+                match &draft.document {
+                    Document::Furniture(f) => f.setup.cutter,
+                    _ => 6.0,
+                },
             );
-            if let Ok(parts) = panels(draft.document.template(), draft.document.dimensions()) {
-                egui::Grid::new("furniture-cut-list")
-                    .striped(true)
-                    .show(ui, |ui| {
-                        ui.strong("Repère");
-                        ui.strong("Pièce");
-                        ui.strong("Cotes finies (mm)");
-                        ui.end_row();
-                        for p in parts {
-                            ui.label(p.id);
-                            ui.label(p.name);
-                            ui.label(format!("{} × {} × {}", p.width, p.height, p.thickness));
+            ui.collapsing("Liste des pièces", |ui| {
+                let cutter = match &draft.document {
+                    Document::Furniture(f) => f.setup.cutter,
+                    _ => 6.0,
+                };
+                if let Ok(parts) = panels_with_cutter(
+                    draft.document.template(),
+                    draft.document.dimensions(),
+                    cutter,
+                ) {
+                    egui::Grid::new("furniture-cut-list")
+                        .striped(true)
+                        .show(ui, |ui| {
+                            ui.strong("Repère");
+                            ui.strong("Pièce");
+                            ui.strong("Cotes finies (mm)");
                             ui.end_row();
-                        }
-                    });
-            }
+                            for p in parts {
+                                ui.label(p.id);
+                                ui.label(p.name);
+                                ui.label(format!("{} × {} × {}", p.width, p.height, p.thickness));
+                                ui.end_row();
+                            }
+                        });
+                }
+            });
         }
         if !draft.document.is_template() {
             ui.horizontal(|ui| {
@@ -97,12 +138,19 @@ impl FurnitureUi {
             });
         }
         let editing = ui.ctx().wants_keyboard_input() || ui.input(|i| i.pointer.any_down());
-        draft.record_group(previous, editing);
+        let key = ui.ctx().memory(|m| m.focus()).map(|id| {
+            use std::hash::{Hash, Hasher};
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            id.hash(&mut hasher);
+            hasher.finish()
+        });
+        draft.record_group_scoped(previous, editing, key);
         self.draft = Some(draft);
-        // The duplicate prompt uses the same unsaved-document protection as navigation.
-        if matches!(self.pending, Some(Pending::Duplicate)) && !self.dirty() {
-            self.pending = None;
-            self.execute(Pending::Duplicate);
+        // Actions queued while the draft is borrowed must observe its restored
+        // dirty state, just like normal library navigation.
+        if matches!(self.pending, Some(Pending::Duplicate | Pending::New(_))) && !self.dirty() {
+            let action = self.pending.take().expect("queued editor action");
+            self.execute(action);
         }
     }
 }

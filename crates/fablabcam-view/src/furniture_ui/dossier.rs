@@ -1,6 +1,6 @@
 use super::FurnitureUi;
 use eframe::egui;
-use fablabcam_studio::furniture::{cam_project, fabrication_files, place};
+use fablabcam_studio::furniture::{cam_project_for_face, fabrication_files, place, MachiningFace};
 
 impl FurnitureUi {
     pub(super) fn layout_panel(
@@ -71,8 +71,19 @@ impl FurnitureUi {
                 if ui.button("Exporter le dossier ZIP…").clicked() {
                     self.export_dossier(f);
                 }
+                ui.horizontal(|ui| {
+                    ui.selectable_value(&mut self.cam_face, MachiningFace::Front, "Recto");
+                    ui.selectable_value(
+                        &mut self.cam_face,
+                        MachiningFace::Back,
+                        "Verso (miroir X)",
+                    );
+                });
+                if self.cam_face == MachiningFace::Back {
+                    ui.label("Préparer le verso avant la découpe extérieure ; retourner autour de Y avec repérage de l’origine.");
+                }
                 if ui.button("Préparer cette dalle en FAO").clicked() {
-                    match cam_project(f, self.sheet) {
+                    match cam_project_for_face(f, self.sheet, self.cam_face) {
                         Ok(p) => self.handoff = Some((p, f.setup.machine.clone())),
                         Err(e) => {
                             self.feedback(Err(e), "");

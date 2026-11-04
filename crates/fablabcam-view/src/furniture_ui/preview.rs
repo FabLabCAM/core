@@ -1,5 +1,8 @@
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
-use fablabcam_studio::furniture::{panels, Dimensions, Furniture, Sheet, Template};
+use fablabcam_studio::furniture::{
+    panels_with_cutter, path_points, placed_contour, Dimensions, Furniture, MachiningFace, Sheet,
+    Template,
+};
 
 pub(super) fn assembly(
     ui: &mut egui::Ui,
@@ -7,8 +10,9 @@ pub(super) fn assembly(
     d: &Dimensions,
     exploded: bool,
     height: f32,
+    cutter: f64,
 ) {
-    let Ok(mut parts) = panels(t, d) else {
+    let Ok(mut parts) = panels_with_cutter(t, d, cutter) else {
         return;
     };
     let (area, _) = ui.allocate_exact_size(
@@ -83,8 +87,44 @@ pub(super) fn assembly(
             ));
         }
     }
+    // Machining contours are the same curves exported to CAM. Overlay both faces
+    // in the exploded view to expose pockets rather than hiding them in a cuboid.
+    for p in &parts {
+        let axes = p.axes();
+        for (path, face, color) in
+            std::iter::once((&p.outline, MachiningFace::Front, Color32::LIGHT_BLUE)).chain(
+                p.features.iter().map(|f| {
+                    (
+                        &f.contour,
+                        f.face,
+                        if f.through {
+                            Color32::LIGHT_RED
+                        } else {
+                            Color32::YELLOW
+                        },
+                    )
+                }),
+            )
+        {
+            let points = path_points(path)
+                .into_iter()
+                .map(|v| {
+                    let mut q = p.origin;
+                    q[axes[0]] += v[0];
+                    q[axes[1]] += v[1];
+                    if face == MachiningFace::Back {
+                        q[p.normal] += p.thickness;
+                    }
+                    screen(q)
+                })
+                .collect();
+            painter.add(egui::Shape::line(points, Stroke::new(1.0_f32, color)));
+        }
+    }
     // Labels are overlaid after all faces, so a later panel cannot cover a repère.
-    if height > 180.0 {
+    // Large grids are identified through the tree and cut list; labels on every
+    // bin panel would obscure the assembled preview entirely.
+    if height > 180.0 && parts.len() <= 24 {
         for p in &parts {
             let o = p.origin;
             let s = p.size;
@@ -92,7 +132,7 @@ pub(super) fn assembly(
             painter.text(
                 at,
                 egui::Align2::CENTER_CENTER,
-                &p.id,
+                &p.name,
                 egui::FontId::proportional(11.0),
                 Color32::WHITE,
             );
@@ -123,10 +163,28 @@ pub(super) fn sheet(ui: &mut egui::Ui, f: &Furniture, s: &Sheet) {
         let r = Rect::from_two_pos(map(p.x, p.y), map(p.x + p.width, p.y + p.height));
         painter.rect_filled(r, 2.0, Color32::from_rgb(61, 111, 89));
         painter.rect_stroke(r, 2.0, Stroke::new(1.0_f32, Color32::WHITE));
+        for (path, color) in std::iter::once((&p.panel.outline, Color32::WHITE)).chain(
+            p.panel.features.iter().map(|f| {
+                (
+                    &f.contour,
+                    if f.through {
+                        Color32::LIGHT_RED
+                    } else {
+                        Color32::YELLOW
+                    },
+                )
+            }),
+        ) {
+            let points = path_points(&placed_contour(p, path, MachiningFace::Front, w))
+                .into_iter()
+                .map(|v| map(v[0], v[1]))
+                .collect();
+            painter.add(egui::Shape::line(points, Stroke::new(1.0_f32, color)));
+        }
         painter.text(
             r.center(),
             egui::Align2::CENTER_CENTER,
-            format!("{}\n{} × {}", p.panel.id, p.panel.width, p.panel.height),
+            format!("{}\n{} × {}", p.panel.name, p.panel.width, p.panel.height),
             egui::FontId::proportional(12.0),
             Color32::WHITE,
         );

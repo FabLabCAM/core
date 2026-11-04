@@ -1,18 +1,31 @@
 //! Parametric furniture use cases. No GUI or machine control lives here.
 //! Projects embed their template and machine: library updates cannot change a job.
+mod cam_plan;
+mod composition;
 mod data;
 mod document;
 mod fabrication;
 mod geometry;
+mod joinery;
+mod joints;
 mod layout;
 mod library;
 mod manual;
 mod setup;
 
+pub use cam_plan::{placed_contour, CamRequirement};
+pub use composition::*;
 pub use data::*;
 pub use document::{Document, Draft};
-pub use fabrication::{cam_project, fabrication_files, fabrication_zip, ExportOptions};
-pub use geometry::{panels, Panel};
+pub use fabrication::{
+    cam_project, cam_project_for_face, fabrication_files, fabrication_zip, ExportOptions,
+};
+pub use geometry::{panels, panels_with_cutter, Panel};
+pub use joinery::*;
+pub use joints::{
+    connections, machining_preview, panel_entity, path_points, Connection, Contour, MachiningFace,
+    MachiningFeature,
+};
 pub use layout::{place, Layout, Placement, Sheet};
 pub use library::{export_file, read_document, Library};
 pub use setup::*;
@@ -21,6 +34,7 @@ pub use setup::*;
 /// attached machine just because it was saved/reopened as a CB document.
 pub fn check_cam_export(studio: &crate::Studio, code: &str) -> Result<(), String> {
     use fablabcam_cam::gcode::machine::{validate, Severity, Status};
+    cam_plan::check_requirements(studio.project())?;
     let Some(profile) = &studio.project().machine_profile else {
         return Ok(());
     };

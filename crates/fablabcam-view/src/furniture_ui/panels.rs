@@ -98,7 +98,17 @@ impl FurnitureUi {
                             d.thickness,
                             doc.template().revision
                         ));
-                        super::preview::assembly(ui, doc.template(), d, false, 130.0);
+                        super::preview::assembly(
+                            ui,
+                            doc.template(),
+                            d,
+                            false,
+                            130.0,
+                            match &doc {
+                                Document::Furniture(f) => f.setup.cutter,
+                                _ => 6.0,
+                            },
+                        );
                         ui.horizontal(|ui| {
                             if ui.button("Modifier").clicked() {
                                 self.request(Pending::Select(doc.clone()));
@@ -134,6 +144,15 @@ impl FurnitureUi {
             }
             ui.separator();
             ui.add_enabled_ui(!self.busy(), |ui| {
+                if self.composing && self.draft.is_some() {
+                    ui.collapsing("Bibliothèque de meubles et modèles", |ui| {
+                        self.library_panel(ui)
+                    });
+                    egui::ScrollArea::vertical()
+                        .id_source("furniture-full-editor")
+                        .show(ui, |ui| self.editor(ui));
+                    return;
+                }
                 ui.columns(2, |cols| {
                     self.library_panel(&mut cols[0]);
                     egui::ScrollArea::vertical()

@@ -1,5 +1,31 @@
 # Mémoire de maintenance FabLabCAM
 
+## Version 0.6.0 : éditeur de composition et assemblages, issue #17
+
+- Branche de livraison : `feat/17-furniture-composer`. Références :
+  [QA sources](qa/0.6.0.md), [release](https://github.com/FabLabCAM/core/releases/tag/v0.6.0)
+  et guide ci-dessous. Vérifier la publication et les paquets avant de fermer #17.
+- Composer dans l'étape Meuble : arbre/cases sélectionnables, divisions, positions
+  fixes/égales, grille, bacs ouverts, copie avec liaisons et historique.
+- Épaisseurs individuelles et profondeur de séparation ; angles configurables
+  par panneau continu. Dimensions utiles recalculées sans double paroi.
+- Schéma 2 lit le schéma 1 sans modifier l'original ; sauvegarde explicite et
+  copie de secours du catalogue ancien. Enregistrer comme modèle garde la composition.
+- Huit familles initiales, variantes orthogonales décrites dans le guide ; les huit
+  autres restent désactivées. Un type non pris en charge ne devient jamais bord à bord.
+- Jeu TOTAL, faces et profondeurs conservés dans ZIP/CB ; dalles séparées par
+  épaisseur ; verso miroir X autour de Y avant contours recto. Aucun G-code automatique.
+- Retours de revue à préserver : dégager aussi la racine mâle des tenons ; dépasser
+  le brut avec les poches de réduction ; interdire qu'un îlot satisfasse une poche
+  obligatoire ; remapper les assemblages copiés et les changements d'orientation.
+- Historique : grouper la frappe par champ, pas la frappe avec le bouton suivant.
+  Garder le dernier aperçu pendant une saisie numérique invalide, sans l’utiliser
+  pour exporter. Les grandes grilles masquent les étiquettes 3D superposées.
+- Ne nettoyer les liaisons orphelines qu'après édition explicite, jamais à l'import.
+  Les paramètres des pièces de bac viennent de Bin, pas de panel_thickness.
+- Voir [architecture](adr/0004-furniture-composer.md), [formats](furniture.md) et
+  [guide](https://fablabcam.github.io/docs/guide/composer-meubles/).
+
 ## Version 0.5.0 : module Meubles, issue #14
 
 - Demande validée : module natif simple pour fabriquer du mobilier de FabLab,
@@ -62,6 +88,6 @@ sans modifier implicitement les projets créés avec une ancienne révision.
 
 - TODO(agent) : optimiser le placement sans changer les repères ni accepter de
   résultat partiel ; ajouter des références indépendantes avant toute stratégie.
-- TODO(agent) : distinguer de nouveaux types de construction pour les portes,
-  tiroirs et assemblages usinés ; prévoir une migration explicite de schéma.
+- TODO(agent) : portes, coulisses, encoche de préhension et familles d'assemblages
+  non prises en charge ; prévoir une migration explicite si le schéma évolue.
 - TODO(agent) : améliorer l'accessibilité native des formulaires egui.

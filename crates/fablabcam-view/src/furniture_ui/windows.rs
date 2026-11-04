@@ -1,4 +1,4 @@
-use super::{Draft, FurnitureUi};
+use super::{Document, Draft, FurnitureUi};
 use eframe::egui;
 
 impl FurnitureUi {
@@ -65,7 +65,11 @@ impl FurnitureUi {
                     "Projet de meuble autonome"
                 });
                 ui.label(format!(
-                    "Format 1 · modèle révision {}",
+                    "Format {} · modèle révision {}",
+                    match doc {
+                        Document::Furniture(f) => f.schema_version,
+                        Document::Template(t) => t.schema_version,
+                    },
                     doc.template().revision
                 ));
                 let d = doc.dimensions();
@@ -73,7 +77,17 @@ impl FurnitureUi {
                     "{} × {} × {} mm · épaisseur {} mm",
                     d.width, d.depth, d.height, d.thickness
                 ));
-                super::preview::assembly(ui, doc.template(), d, false, 220.0);
+                super::preview::assembly(
+                    ui,
+                    doc.template(),
+                    d,
+                    false,
+                    220.0,
+                    match &doc {
+                        Document::Furniture(f) => f.setup.cutter,
+                        _ => 6.0,
+                    },
+                );
                 if collision {
                     ui.colored_label(
                         egui::Color32::YELLOW,

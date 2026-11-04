@@ -74,6 +74,7 @@ impl Library {
             return Err("Document modifié ailleurs ou identifiant existant : rechargez ou importez une copie".into());
         }
         let mut next = draft.document.clone();
+        next.promote_schema();
         if let (Document::Template(t), Some(Document::Template(old))) = (&mut next, current) {
             if &draft.document != current.expect("existing template") {
                 t.revision = old
@@ -89,7 +90,7 @@ impl Library {
         }
         docs.sort_by(|a, b| a.name().cmp(b.name()).then(a.id().cmp(b.id())));
         let catalog = Catalog {
-            schema_version: 1,
+            schema_version: super::SCHEMA_VERSION,
             documents: docs,
         };
         let bytes = serde_json::to_vec_pretty(&catalog).map_err(|e| e.to_string())?;
@@ -97,6 +98,28 @@ impl Library {
         temp.write_all(&bytes)
             .and_then(|()| temp.as_file().sync_all())
             .map_err(|e| e.to_string())?;
+        let old = self.root.join("library.json");
+        if old.exists() {
+            let bytes = fs::read(&old).map_err(|e| e.to_string())?;
+            let version: serde_json::Value =
+                serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+            if version.get("schema_version").and_then(|v| v.as_u64()) == Some(1) {
+                match OpenOptions::new()
+                    .create_new(true)
+                    .write(true)
+                    .open(self.root.join("library-schema-1.backup.json"))
+                {
+                    Ok(mut backup) => {
+                        backup
+                            .write_all(&bytes)
+                            .and_then(|()| backup.sync_all())
+                            .map_err(|e| e.to_string())?;
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+                    Err(e) => return Err(e.to_string()),
+                }
+            }
+        }
         temp.persist(self.root.join("library.json"))
             .map_err(|e| e.to_string())?;
         self.documents = catalog.documents;

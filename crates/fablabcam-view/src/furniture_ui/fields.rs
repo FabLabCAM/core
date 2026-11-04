@@ -17,11 +17,14 @@ pub(super) fn dimensions(ui: &mut egui::Ui, d: &mut Dimensions) {
             number(ui, "Hauteur", &mut d.height);
             number(ui, "Épaisseur du panneau", &mut d.thickness);
             ui.label("Tablettes");
-            ui.add(egui::DragValue::new(&mut d.shelves).clamp_range(0..=100));
+            ui.add_enabled(
+                d.composition.is_none(),
+                egui::DragValue::new(&mut d.shelves).clamp_range(0..=100),
+            );
             ui.end_row();
         });
     ui.checkbox(&mut d.back, "Dos rapporté (inclus dans la profondeur)");
-    ui.weak("Panneaux vissés. Dessus, dessous et tablettes entre les côtés. Les repères relient le meuble aux plans.");
+    ui.weak("Dessus/dessous entre les côtés. Activez Composer le meuble pour ajouter des éléments et choisir les assemblages.");
 }
 pub(super) fn limits(ui: &mut egui::Ui, t: &mut Template) {
     ui.collapsing("Paramètres autorisés et règles du modèle",|ui|{
