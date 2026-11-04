@@ -45,6 +45,19 @@ Les captures du module sont référencées dans le guide et son index. Conserver
 les provenances historiques. Pour une prochaine livraison, suivre ce processus
 sans modifier implicitement les projets créés avec une ancienne révision.
 
+## Vérification après publication du 4 novembre 2026
+
+- Release 0.5.0 publique, douze paquets et SHA256SUMS vérifiés ; guide déployé
+  et issue #14 close. Les PR initiales sont core #15 et docs #5.
+- Le blocage dû au Mac verrouillé est levé. Les parcours graphiques du binaire
+  du DMG Apple Silicon et la persistance après relance sont vérifiés. Les sept
+  captures du guide proviennent désormais du binaire publié.
+- Voir le [compte rendu et ses limites](qa/0.5.0.md), notamment la différence
+  entre exports natifs/ZIP testés dans l'interface et dialogue système G-code.
+- Pour les tests locaux, isoler stockage et préférences et utiliser un identifiant
+  de bundle distinct lorsqu'une ancienne installation du Studio est déjà ouverte.
+  Conserver le binaire livré inchangé et vérifier son empreinte.
+
 ## Améliorations futures
 
 - TODO(agent) : optimiser le placement sans changer les repères ni accepter de
