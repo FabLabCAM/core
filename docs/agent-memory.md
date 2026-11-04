@@ -1,5 +1,21 @@
 # Mémoire de maintenance FabLabCAM
 
+## Correctif en cours : préambules G-code, issue #23
+
+- Voir [diagnostic et limites](qa/issue-23.md). Initialiser G40/G49/G80 et le
+  mode IJ dans les exports intégrés ; le CBPP par défaut suit ArcCenterMode.
+- Préserver les Header CBPP explicites, les origines et les macros M6.
+- Le validateur applique les tolérances d'arc documentées pour G20/G21.
+- Le backplot doit distinguer G90.1/G91.1 de G90/G91, y compris dans les autres
+  plans et en pouces. Ne jamais tronquer un G-code fractionnaire en entier.
+- Avant offset, utiliser `remove_redundant` du noyau avec sa tolérance : les
+  splines DXF peuvent produire des sommets répétés et des microsegments alignés.
+  Normaliser une copie ; préserver les bulges et le dessin importé.
+- Les fichiers KO ne présentent pas d'écart de rayon hors tolérance en IJ
+  incrémental. LF est admis par le manuel : ne pas l'accuser sans reproduction.
+- TODO(agent) : obtenir la ligne/message Mach3 et confirmer le lancement sur
+  l'installation du signalement avant clôture de #23 ou annonce de résolution.
+
 ## Version 0.7.0 : assistant natif, issue #20
 
 - Architecture et contrats : [ADR 0005](adr/0005-assistant.md), [assistant](assistant.md),

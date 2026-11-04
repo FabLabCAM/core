@@ -1,5 +1,24 @@
 # Notes de version
 
+## Non publié
+
+### Initialisation du G-code — [#23](https://github.com/FabLabCAM/core/issues/23)
+
+- Exports intégrés : annulation des compensations/cycles et déclaration explicite
+  des centres IJ incrémentaux avant mouvement. Le CBPP par défaut déclare la
+  convention de centre configurée ; les en-têtes personnalisés restent prioritaires.
+- Analyse d'arcs : tolérance de rayon adaptée à l'unité active, conformément au
+  manuel Mach3 (0,002 mm ou 0,0002 pouce).
+- Backplot/simulation : G90.1/G91.1 ne sont plus tronqués en G90/G91 ; les centres
+  absolus sont relus dans les trois plans et les codes fractionnaires inconnus
+  sont signalés au lieu d'être interprétés comme une autre commande.
+- Calcul des décalages : normalisation des sommets répétés et redondants avant
+  l'appel au noyau géométrique, sur une copie du contour ; évite les assertions
+  rencontrées lors de la reproduction depuis le DXF de #23.
+- Régressions sur les modes initiaux, mm/pouces et centres absolus ;
+  [diagnostic](docs/qa/issue-23.md). Cause du blocage de l'installation et essai
+  Mach3 encore à confirmer ; l'issue reste ouverte.
+
 ## 0.7.0 — 2026-11-04
 
 ### Assistant natif — [#20](https://github.com/FabLabCAM/core/issues/20)

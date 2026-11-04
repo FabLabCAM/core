@@ -2,6 +2,18 @@ use fablabcam_cam::gcode::machine::*;
 const PRE: &str = "G21 G90 G17 G40 G49 G80 G94 G91.1\n";
 fn demo() -> Profile { Profile::from_json(include_str!("../../../profiles/mach3-mill-demo.json")).unwrap() }
 fn report(body: &str, p: &Profile) -> Report { validate(&format!("{PRE}{body}\nM30\n"),p) }
+#[test]
+fn center_radius_tolerance_follows_program_units() {
+    let mut p = demo();
+    p.initial_position_mm = Some([25.4, 0., 5.]);
+    // Mach3 Mill 10.7.3.2: 0.0002 inch in G20, 0.002 mm in G21.
+    let inch = report("G20\nG3 X0 Y1.0001 I-1 J0 F10", &p);
+    assert_eq!(inch.status, Status::Valid, "{:?}", inch.diagnostics);
+    for body in ["G3 X0 Y25.40254 I-25.4 J0 F254", "G20\nG3 X0 Y1.0003 I-1 J0 F10"] {
+        let r = report(body, &p);
+        assert!(r.diagnostics.iter().any(|d| d.code == "arc"), "{body}: {:?}", r.diagnostics);
+    }
+}
 #[test] fn circular_extrema_detect_travel_beyond_endpoints() {
     let mut p = demo(); p.initial_position_mm = Some([1.,0.,5.]); p.axes.get_mut(&'Y').unwrap().max = Some(0.5);
     let r = report("G3 X-1 Y0 I-1 J0 F100",&p);

@@ -106,7 +106,9 @@ impl Default for PostDef {
     fn default() -> Self {
         PostDef {
             file: "{$comment} {$cbfile.name} {$endcomment}\n{$header}\n{$mops}\n{$footer}\n".into(),
-            header: "{$tooltable}\n{$units} {$distancemode} {$workplane}\n{$toolchange(first)}".into(),
+            // Declare the same initial state as the integrated emitter, while
+            // honoring the configured arc-center convention and custom header.
+            header: "{$tooltable}\n{$units} {$distancemode} {$workplane} G94 {$cuttercomp(off)} G49 G80 {$arccentermode}\n{$toolchange(first)}".into(),
             footer: "{$clearance}\n{$spindle(off)}\n{$cbfile.footer}\n{$endrewind}".into(),
             mop: "{$comment} {$mop.name} {$endcomment}\n{$toolchange}\n{$mop.header}\n{$spindle} {$s}\n{$blocks}\n{$mop.footer}".into(),
             tool_change: "{$clearance}\n{$comment} T{$tool.index} : {$tool.diameter} {$endcomment}\nT{$tool.index} M6".into(),

@@ -30,8 +30,10 @@ pub(crate) fn calculate(b: &Block, s: &State, from: Point, to: Point) -> Result<
     };
     let radius = (from[u]-center[0]).hypot(from[v]-center[1]);
     let end_radius = (to[u]-center[0]).hypot(to[v]-center[1]);
-    // Tolerance is in mm; never average mismatched radii into a different path.
-    if radius < 1e-9 || (radius-end_radius).abs() > 0.002 {
+    // Mill manual 10.7.3.2: 0.0002 inch in G20, 0.002 mm in G21.
+    // Geometry is already in mm here. Never average mismatched radii.
+    let tolerance_mm = if s.scale == 25.4 { 0.0002 * 25.4 } else { 0.002 };
+    if radius < 1e-9 || (radius-end_radius).abs() > tolerance_mm {
         return Err(format!("Rayons d'arc incohérents : {radius:.6} / {end_radius:.6} mm"));
     }
     let a0 = (from[v]-center[1]).atan2(from[u]-center[0]);

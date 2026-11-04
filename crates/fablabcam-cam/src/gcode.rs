@@ -4,6 +4,13 @@ pub mod machine;
 use crate::params::Params;
 use crate::toolpath::{Move, Toolpath};
 
+/// Establish the modes assumed by the integrated milling emitter, independently
+/// of a previous controller program. G90 does not select incremental I/J.
+/// Work offsets and physical machine settings remain the operator's choice.
+pub fn milling_preamble(inches: bool) -> String {
+    format!("{} G90 G17 G94 G40 G49 G80 G91.1", if inches { "G20" } else { "G21" })
+}
+
 #[derive(Debug, Clone)]
 pub struct Post {
     pub decimals: usize,
@@ -67,7 +74,7 @@ impl Emitter<'_> {
 pub fn emit(path: &Toolpath, p: &Params, post: &Post) -> String {
     let mut e = Emitter { post, out: String::new(), group: None, feed: None };
     e.line(format!("({})", post.program_name));
-    e.line("G21 G90 G17 G94");
+    e.line(milling_preamble(false));
     e.line(format!("(Outil D{})", e.n(p.tool_diameter)));
     e.line(format!("{} S{}", if p.spindle_cw { "M3" } else { "M4" }, e.n(p.spindle_speed)));
     e.motion("G0", &[("Z", Some(p.clearance_plane))], None);
@@ -146,7 +153,7 @@ mod tests {
         let t = profile(&geom::rectangle(0.0, 0.0, 50.0, 30.0), Side::Outside, &p()).unwrap();
         let g = emit(&t, &p(), &Post::default());
         let lines: Vec<&str> = g.lines().collect();
-        assert_eq!(lines[1], "G21 G90 G17 G94");
+        assert_eq!(lines[1], "G21 G90 G17 G94 G40 G49 G80 G91.1");
         assert_eq!(*lines.last().unwrap(), "M30");
         assert!(g.contains("G3 ") || g.contains("G2 "));
         // modalité : jamais deux « G1 » consécutifs ne répètent le code
