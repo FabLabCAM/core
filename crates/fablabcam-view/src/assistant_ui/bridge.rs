@@ -38,7 +38,7 @@ impl App {
             Some((rev, fraction, resolution, out)) => {
                 serde_json::json!({"progress":fraction,"resolution_mm":resolution,"project_revision":rev,
                 "current":*rev==self.studio.rev,"complete":*fraction>=1.0,"gouges":out.gouges.len(),
-                "stock":{"min":out.map.min,"grid_size":[out.map.nx,out.map.ny],"resolution_mm":out.map.res,"top":out.map.top,"bottom":out.map.bottom},
+                "stock":{"min_mm":out.map.min,"grid_cells":[out.map.nx,out.map.ny],"size_mm":[out.map.nx as f64*out.map.res,out.map.ny as f64*out.map.res],"resolution_mm":out.map.res,"top_mm":out.map.top,"bottom_mm":out.map.bottom},
                 "gouge_details":out.gouges.iter().take(50).map(|g|serde_json::json!({"kind":format!("{:?}",g.kind),"position":g.pos,"operation":g.op})).collect::<Vec<_>>(),
                 "gouge_details_truncated":out.gouges.len()>50,"total_path_length_mm":out.total_len,
                 "simulated_path_length_mm":out.total_len*fraction.clamp(0.0,1.0),

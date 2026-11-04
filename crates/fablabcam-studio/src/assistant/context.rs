@@ -79,7 +79,7 @@ impl ContextSnapshot {
                     .take(2000)
                     .map(|s| {
                         json!({"id":s.id,"layer":s.layer,
-                    "geometry":format!("{:?}",s.entity),"bounds":crate::shape::bounds(&s.entity)})
+                    "geometry":geometry(&s.entity),"bounds_mm":crate::shape::bounds(&s.entity)})
                     })
                     .collect(),
             );
@@ -132,5 +132,24 @@ impl ContextSnapshot {
         let workspace_token = w.fingerprint();
         let token = format!("{:x}", Sha256::digest([workspace_token.as_bytes(), &encoded].concat()));
         Ok(Self { token, workspace_token, page: meta.page.clone(), revision: w.revision, data })
+    }
+}
+
+// Units are explicit: a model must not interpret a radius as a diameter or a grid as millimetres.
+fn geometry(entity: &fablabcam_model::Entity) -> Value {
+    use fablabcam_geom::PlineSource;
+    use fablabcam_model::Entity;
+    match entity {
+        Entity::Circle { cx, cy, r } => json!({"type":"circle","center_mm":[cx,cy],"radius_mm":r,"diameter_mm":2.0*r}),
+        Entity::Arc { cx, cy, r, start_deg, sweep_deg } => {
+            json!({"type":"arc","center_mm":[cx,cy],"radius_mm":r,"diameter_mm":2.0*r,"start_deg":start_deg,"sweep_deg":sweep_deg})
+        }
+        Entity::Point { x, y } => json!({"type":"point","position_mm":[x,y]}),
+        Entity::Rect { x, y, w, h, r, rot_deg } => {
+            json!({"type":"rectangle","origin_mm":[x,y],"size_mm":[w,h],"corner_radius_mm":r,"rotation_deg":rot_deg})
+        }
+        Entity::Polyline(p) => {
+            json!({"type":"polyline","closed":p.is_closed(),"vertices":(0..p.vertex_count()).map(|i|{let v=p.at(i);json!({"position_mm":[v.x,v.y],"bulge":v.bulge})}).collect::<Vec<_>>()})
+        }
     }
 }

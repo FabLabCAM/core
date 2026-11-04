@@ -207,3 +207,14 @@ fn updating_tool_rejects_invalid_values_without_changing_source() {
     )
     .is_err());
 }
+
+#[test]
+fn geometry_context_names_radius_and_diameter_with_units() {
+    let w = workspace();
+    let c = context(&w);
+    let g = &c.data["drawing"][0]["geometry"];
+    assert_eq!(g["type"], "circle");
+    assert_eq!(g["center_mm"], serde_json::json!([10.0, 10.0]));
+    assert_eq!(g["radius_mm"], 1.5);
+    assert_eq!(g["diameter_mm"], 3.0);
+}

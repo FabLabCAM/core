@@ -124,7 +124,9 @@ fn simulation_context_distinguishes_total_and_simulated_distance() {
     assert_eq!(c.data["simulation"]["total_path_length_mm"], 1000.0);
     assert_eq!(c.data["simulation"]["simulated_path_length_mm"], 550.0);
     assert_eq!(c.data["simulation"]["complete"], false);
-    assert_eq!(c.data["simulation"]["stock"]["bottom"], -4.0);
+    assert_eq!(c.data["simulation"]["stock"]["bottom_mm"], -4.0);
+    assert_eq!(c.data["simulation"]["stock"]["size_mm"], serde_json::json!([1.0, 1.0]));
+    assert_eq!(c.data["simulation"]["stock"]["grid_cells"], serde_json::json!([2, 2]));
 }
 
 #[test]
