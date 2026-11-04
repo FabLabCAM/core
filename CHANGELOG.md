@@ -2,8 +2,13 @@
 
 ## Non publié
 
-### Initialisation du G-code — [#23](https://github.com/FabLabCAM/core/issues/23)
+### Arcs et initialisation du G-code — [#23](https://github.com/FabLabCAM/core/issues/23)
 
+- Arcs devenant dégénérés après arrondi : subdivision en G1 selon la précision
+  de sortie, commune aux exports intégré et CBPP, avec conservation des cercles
+  représentables et des hélices. Corrige le bloc identifié par les photos Mach3.
+- Validateur : refus d'un rayon final nul même si l'écart entre les rayons est
+  inférieur à la tolérance ; régression du bloc exact affiché ligne 7393.
 - Exports intégrés : annulation des compensations/cycles et déclaration explicite
   des centres IJ incrémentaux avant mouvement. Le CBPP par défaut déclare la
   convention de centre configurée ; les en-têtes personnalisés restent prioritaires.
@@ -16,8 +21,8 @@
   l'appel au noyau géométrique, sur une copie du contour ; évite les assertions
   rencontrées lors de la reproduction depuis le DXF de #23.
 - Régressions sur les modes initiaux, mm/pouces et centres absolus ;
-  [diagnostic](docs/qa/issue-23.md). Cause du blocage de l'installation et essai
-  Mach3 encore à confirmer ; l'issue reste ouverte.
+  [diagnostic](docs/qa/issue-23.md). Bloc dégénéré identifié dans trois KO ;
+  retour Mach3 du correctif et cause du quatrième KO encore à confirmer.
 
 ## 0.7.0 — 2026-11-04
 

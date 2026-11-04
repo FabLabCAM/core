@@ -585,7 +585,7 @@ impl Renderer<'_> {
             Move::Arc { ccw, x, y, z, i, j, f } => {
                 let (px, py) = (self.pos.0, self.pos.1);
                 let r = i.hypot(*j);
-                let sweep = arc_sweep(px, py, *x, *y, px + i, py + j, *ccw);
+                let sweep = crate::gcode::arc_output::sweep((px, py), (*x, *y), (px + i, py + j), *ccw);
                 let too_short = def.min_arc_length > 0.0 && r * sweep < def.min_arc_length;
                 let too_big = def.max_arc_radius > 0.0 && r > def.max_arc_radius;
                 let helical = z.is_some_and(|z| (z - self.pos.2).abs() > 1e-9);
@@ -594,8 +594,16 @@ impl Renderer<'_> {
                     ArcOutput::ConvertToLines => true,
                     ArcOutput::HelixConvertToLines => helical,
                 };
-                let s = if to_lines && r > 1e-9 && !(too_short || too_big) {
-                    self.arc_as_lines((px, py, self.pos.2), (*x, *y, *z), (px + i, py + j), r, sweep, *ccw, *f)
+                let degenerate = crate::gcode::arc_output::degenerates(
+                    (px, py), (*x, *y), (*i, *j), def.arc_center == ArcCenter::Absolute,
+                    |v| self.fmt(v).parse().unwrap_or(v),
+                );
+                let s = if degenerate {
+                    let decimals = def.number_format.split_once('.').map_or(0, |(_, f)| f.chars().filter(|c| *c == '0' || *c == '#').count());
+                    let tol = def.arc_tolerance.min(0.5 * 10_f64.powf(-(decimals as f64)));
+                    self.arc_as_lines((px, py, self.pos.2), (*x, *y, *z), (px + i, py + j), r, sweep, *ccw, *f, tol)
+                } else if to_lines && r > 1e-9 && !(too_short || too_big) {
+                    self.arc_as_lines((px, py, self.pos.2), (*x, *y, *z), (px + i, py + j), r, sweep, *ccw, *f, def.arc_tolerance)
                 } else if too_short || too_big || to_lines {
                     self.with_vals(&[('x', Some(*x)), ('y', Some(*y)), ('z', *z), ('f', Some(*f))], &def.feed_move)
                 } else {
@@ -624,44 +632,15 @@ impl Renderer<'_> {
         }
     }
 
-    /// Arc remplacé par des segments dont l'écart à l'arc ne dépasse pas `arc_tolerance`.
+    /// The common subdivision preserves full/major arcs and helical depth.
     #[allow(clippy::too_many_arguments)]
-    fn arc_as_lines(&mut self, start: (f64, f64, f64), end: (f64, f64, Option<f64>), c: (f64, f64), r: f64, sweep: f64, ccw: bool, f: f64) -> String {
-        let tol = self.def.arc_tolerance.max(1e-9);
-        let step = if tol >= r { std::f64::consts::PI } else { 2.0 * (1.0 - tol / r).acos() };
-        let n = ((sweep / step).ceil() as usize).clamp(1, 100_000);
-        let a0 = (start.1 - c.1).atan2(start.0 - c.0);
-        let dir = if ccw { 1.0 } else { -1.0 };
-        let z1 = end.2.unwrap_or(start.2);
-        let mut lines = Vec::new();
-        for k in 1..=n {
-            let t = k as f64 / n as f64;
-            let (x, y) = if k == n { (end.0, end.1) } else { (c.0 + r * (a0 + dir * sweep * t).cos(), c.1 + r * (a0 + dir * sweep * t).sin()) };
-            let z = end.2.map(|_| start.2 + (z1 - start.2) * t);
-            let feed = self.def.feed_move.clone();
-            let l = self.with_vals(&[('x', Some(x)), ('y', Some(y)), ('z', z), ('f', Some(f))], &feed);
-            self.advance(Some(x), Some(y), z);
-            if !l.is_empty() {
-                lines.push(l);
-            }
-        }
-        lines.join("\n")
+    fn arc_as_lines(&mut self, start: (f64, f64, f64), end: (f64, f64, Option<f64>), c: (f64, f64), r: f64, sweep: f64, ccw: bool, f: f64, tolerance: f64) -> String {
+        crate::gcode::arc_output::lines(start, end, c, r, sweep, ccw, f, tolerance)
+            .iter().map(|m| self.move_text(m)).filter(|s| !s.is_empty()).collect::<Vec<_>>().join("\n")
     }
 
     fn advance(&mut self, x: Option<f64>, y: Option<f64>, z: Option<f64>) {
         self.pos = (x.unwrap_or(self.pos.0), y.unwrap_or(self.pos.1), z.unwrap_or(self.pos.2));
-    }
-}
-
-/// Angle balayé par un arc de (x0,y0) à (x1,y1) autour de (cx,cy) ; un arc fermé fait un tour complet.
-fn arc_sweep(x0: f64, y0: f64, x1: f64, y1: f64, cx: f64, cy: f64, ccw: bool) -> f64 {
-    let a0 = (y0 - cy).atan2(x0 - cx);
-    let a1 = (y1 - cy).atan2(x1 - cx);
-    let d = if ccw { (a1 - a0).rem_euclid(std::f64::consts::TAU) } else { (a0 - a1).rem_euclid(std::f64::consts::TAU) };
-    if d < 1e-9 {
-        std::f64::consts::TAU
-    } else {
-        d
     }
 }
 

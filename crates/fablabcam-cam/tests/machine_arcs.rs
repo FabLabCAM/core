@@ -14,6 +14,20 @@ fn center_radius_tolerance_follows_program_units() {
         assert!(r.diagnostics.iter().any(|d| d.code == "arc"), "{body}: {:?}", r.diagnostics);
     }
 }
+#[test]
+fn zero_end_radius_is_invalid_even_within_radius_tolerance() {
+    let mut p = demo();
+    // Exact block reported by Mach3 in #23 (displayed line 7393).
+    p.initial_position_mm = Some([85.866, 36.550, 0.]);
+    for body in [
+        "G2 X85.866 Y36.549 I0 J-0.001 F100",
+        "G90.1\nG3 X85.866 Y36.549 I85.866 J36.549 F100",
+    ] {
+        let r = report(body, &p);
+        assert_eq!(r.status, Status::Invalid, "{body}: {:?}", r.diagnostics);
+        assert!(r.diagnostics.iter().any(|d| d.code == "arc"));
+    }
+}
 #[test] fn circular_extrema_detect_travel_beyond_endpoints() {
     let mut p = demo(); p.initial_position_mm = Some([1.,0.,5.]); p.axes.get_mut(&'Y').unwrap().max = Some(0.5);
     let r = report("G3 X-1 Y0 I-1 J0 F100",&p);

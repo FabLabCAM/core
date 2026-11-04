@@ -1,6 +1,6 @@
 # Mémoire de maintenance FabLabCAM
 
-## Correctif en cours : préambules G-code, issue #23
+## Correctif en cours : arcs dégénérés et préambules G-code, issue #23
 
 - Voir [diagnostic et limites](qa/issue-23.md). Initialiser G40/G49/G80 et le
   mode IJ dans les exports intégrés ; le CBPP par défaut suit ArcCenterMode.
@@ -11,10 +11,14 @@
 - Avant offset, utiliser `remove_redundant` du noyau avec sa tolérance : les
   splines DXF peuvent produire des sommets répétés et des microsegments alignés.
   Normaliser une copie ; préserver les bulges et le dessin importé.
-- Les fichiers KO ne présentent pas d'écart de rayon hors tolérance en IJ
-  incrémental. LF est admis par le manuel : ne pas l'accuser sans reproduction.
-- TODO(agent) : obtenir la ligne/message Mach3 et confirmer le lancement sur
-  l'installation du signalement avant clôture de #23 ou annonce de résolution.
+- Photos reçues : Mach3 refuse `projet_test002`, ligne affichée 7393 (physique
+  7394), car l'arrivée coïncide avec le centre après arrondi. Trois KO ont chacun
+  38 rayons finaux nuls. Le contrôle initial omettait le rayon final : ne pas
+  confondre un écart sous tolérance et un arc non dégénéré. LF reste admis.
+- Les deux émetteurs contrôlent les coordonnées formatées et partagent la
+  subdivision des arcs dégénérés ; conserver cercles réels, arcs majeurs et Z.
+- TODO(agent) : confirmer les copies ARCS_A_TESTER dans Mach3 avant clôture ;
+  `lyon3.v1` ne contient pas ce défaut et exige un diagnostic distinct.
 
 ## Version 0.7.0 : assistant natif, issue #20
 

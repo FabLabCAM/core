@@ -33,7 +33,10 @@ pub(crate) fn calculate(b: &Block, s: &State, from: Point, to: Point) -> Result<
     // Mill manual 10.7.3.2: 0.0002 inch in G20, 0.002 mm in G21.
     // Geometry is already in mm here. Never average mismatched radii.
     let tolerance_mm = if s.scale == 25.4 { 0.0002 * 25.4 } else { 0.002 };
-    if radius < 1e-9 || (radius-end_radius).abs() > tolerance_mm {
+    if radius < 1e-9 || end_radius < 1e-9 {
+        return Err(format!("Rayon d'arc nul au départ ou à l'arrivée : {radius:.6} / {end_radius:.6} mm"));
+    }
+    if (radius-end_radius).abs() > tolerance_mm {
         return Err(format!("Rayons d'arc incohérents : {radius:.6} / {end_radius:.6} mm"));
     }
     let a0 = (from[v]-center[1]).atan2(from[u]-center[0]);

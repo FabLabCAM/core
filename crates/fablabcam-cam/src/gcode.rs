@@ -1,5 +1,6 @@
 //! Post-processeur G-code générique (dialecte proche de Mach3/GRBL, unités mm).
 pub mod machine;
+pub(crate) mod arc_output;
 
 use crate::params::Params;
 use crate::toolpath::{Move, Toolpath};
@@ -81,6 +82,7 @@ pub fn emit(path: &Toolpath, p: &Params, post: &Post) -> String {
     // altitude connue de l'outil : un rapide vertical vers l'altitude courante est omis (jonction
     // entre les trajets de deux formes)
     let mut cur_z = Some(p.clearance_plane);
+    let mut pos = (0., 0., p.clearance_plane);
     for m in &path.moves {
         if let Move::Rapid { x: None, y: None, z: Some(z) } = m {
             if cur_z.is_some_and(|c| (c - z).abs() < 1e-9) {
@@ -97,8 +99,19 @@ pub fn emit(path: &Toolpath, p: &Params, post: &Post) -> String {
             Move::Rapid { x, y, z } => e.motion("G0", &[("X", *x), ("Y", *y), ("Z", *z)], None),
             Move::Feed { x, y, z, f } => e.motion("G1", &[("X", *x), ("Y", *y), ("Z", *z)], Some(*f)),
             Move::Arc { ccw, x, y, z, i, j, f } => {
-                let g = if *ccw { "G3" } else { "G2" };
-                e.motion(g, &[("X", Some(*x)), ("Y", Some(*y)), ("Z", *z), ("I", Some(*i)), ("J", Some(*j))], Some(*f));
+                if arc_output::degenerates((pos.0, pos.1), (*x, *y), (*i, *j), false, |v| e.n(v).parse().unwrap_or(v)) {
+                    let center = (pos.0 + i, pos.1 + j);
+                    let angle = arc_output::sweep((pos.0, pos.1), (*x, *y), center, *ccw);
+                    let tol = 0.5 * 10_f64.powf(-(post.decimals as f64));
+                    for line in arc_output::lines(pos, (*x, *y, *z), center, i.hypot(*j), angle, *ccw, *f, tol) {
+                        if let Move::Feed { x, y, z, f } = line {
+                            e.motion("G1", &[("X", x), ("Y", y), ("Z", z)], Some(f));
+                        }
+                    }
+                } else {
+                    let g = if *ccw { "G3" } else { "G2" };
+                    e.motion(g, &[("X", Some(*x)), ("Y", Some(*y)), ("Z", *z), ("I", Some(*i)), ("J", Some(*j))], Some(*f));
+                }
             }
             Move::Drill { x, y, z, retract, f, peck, dwell } => {
                 if post.canned_drill {
@@ -121,6 +134,14 @@ pub fn emit(path: &Toolpath, p: &Params, post: &Post) -> String {
                     e.motion("G0", &[("Z", Some(*retract))], None);
                 }
             }
+        }
+        match m {
+            Move::Rapid { x, y, z } | Move::Feed { x, y, z, .. } => {
+                pos = (x.unwrap_or(pos.0), y.unwrap_or(pos.1), z.unwrap_or(pos.2));
+            }
+            Move::Arc { x, y, z, .. } => pos = (*x, *y, z.unwrap_or(pos.2)),
+            Move::Drill { x, y, retract, .. } => pos = (*x, *y, if post.canned_drill { *retract } else { p.clearance_plane }),
+            Move::Comment(_) => {}
         }
     }
     e.line("M5");
