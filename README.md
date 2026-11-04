@@ -52,11 +52,13 @@ cargo run --locked -p fablabcam-cli -- web demo -o studio.html
 Les valeurs des fixtures servent aux tests ; adapter les réglages à la machine,
 au matériau et à l'outil avant tout usinage réel.
 
-## Meubles pour le FabLab (0.5.0)
+## Meubles pour le FabLab (0.6.0)
 
 Ouvrez **Meubles** dans le Studio : créez un modèle de caisson ou d'étagère,
 utilisez-le pour un meuble, puis réglez matière, CNC et dalles. L'assistant produit
 un dossier ZIP avec plans CB/DXF/SVG, liste de débit CSV et notice PDF.
+Activez **Composer le meuble** pour ajouter des cases, séparations et bacs,
+choisir leurs assemblages et conserver la structure dans vos modèles.
 Les modèles et meubles s'échangent au format `.fcm-template.json` / `.fcm.json`.
 
 ```sh

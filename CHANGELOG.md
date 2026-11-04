@@ -1,5 +1,23 @@
 # Notes de version
 
+## 0.6.0 — 2026-11-04
+
+### Composer des meubles et choisir les assemblages — [#17](https://github.com/FabLabCAM/core/issues/17)
+
+- Éditeur visuel : cases, tablettes, séparations, grille, positions fixes/égales,
+  épaisseurs individuelles, bacs ouverts, copie/répétition et annuler/rétablir.
+- Modèles et projets conservent toute la composition. Schéma 2, lecture du schéma 1,
+  migration explicite et sauvegarde du catalogue précédent.
+- Assemblage par défaut et surcharges par liaison, orientation des angles,
+  jeu total, variantes traversantes/borgnes, dogbone/T-bone et pièces complémentaires.
+  Huit familles orthogonales disponibles ; autres familles visibles et désactivées.
+- Plans réels CB/DXF/SVG, poches/profondeurs, manifestes et montages recto/verso.
+  Placement par épaisseur, enveloppes incluant tenons et dégagements.
+- Contrôle FAO des opérations nécessaires ; refus des poches absentes ou devenues
+  îlots, maintien de la validation distincte du G-code et du profil machine.
+- Guide, formats, architecture et mémoire de maintenance actualisés. La tenue
+  mécanique, les coulisses, la quincaillerie et l'édition 3D libre ne sont pas calculées.
+
 ## 0.5.0 — 2026-11-04
 
 ### Meubles paramétriques — [#14](https://github.com/FabLabCAM/core/issues/14)

@@ -44,3 +44,10 @@ cadratin reste le dernier recours pour les polices sans cette lettre.
 Le module pur `fablabcam_cam::gcode::machine` analyse et valide les programmes ;
 `fablabcam_studio::gcode_store` conserve profils et révisions. La CLI les expose
 sans ajouter de crate. Voir l’[ADR-0001](adr/0001-machine-gcode.md).
+
+## Édition de mobilier composé
+
+Le domaine `furniture` sépare `composition` (arbre, épaisseurs, orientations,
+validation et copie), `joints` (contacts et géométrie), placement et fabrication.
+L'UI ne calcule aucune découpe ; elle modifie le document, enregistre l'historique
+et affiche les résultats du même moteur utilisé par la CLI. Voir l'[ADR 0004](adr/0004-furniture-composer.md).
