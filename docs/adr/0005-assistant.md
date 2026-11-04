@@ -30,6 +30,8 @@ Les commandes existantes restent la référence pour validation et annulation.
 - `reqwest` : client avec délais et redirections interdites ; TLS vérifié.
 - `tokio` : annulation des futures et délais bornés dans le worker, sans runtime
   dans la boucle de rendu. Les réponses tardives ne peuvent appliquer d'actions.
+- `egui_commonmark` 0.11 : Markdown natif compatible egui 0.25, sans chargeurs
+  d’images, de fichiers ou HTTP activés.
 - `schemars` : schémas JSON dérivés des arguments Rust, puis validation métier.
 - `keyring` 3.6 : coffre système (Keychain, Windows Credential Manager,
   Secret Service Linux). Les clés ne sont jamais sérialisées avec l'historique,
@@ -54,7 +56,8 @@ une destination choisie explicitement. Pas de shell, réseau arbitraire ou pilot
 de machine exposés au modèle. La simulation 2.5D ne qualifie pas une CNC.
 
 Les plafonds couvrent durée, taille du contexte/réponse, nombre d'actions et
-opérations/mémoire Rhai. Le transport ne rejoue pas automatiquement un lot.
+opérations et conteneurs Rhai. Le délai Rhai est coopératif ; il ne
+préempte pas un appel géométrique natif et ne plafonne pas la mémoire totale. Le transport ne rejoue pas automatiquement un lot.
 Les journaux structurés décrivent identifiant de requête, fournisseur, statut et
 durée ; ni secrets ni contenu complet des documents. Le mode debug reste borné.
 

@@ -1,5 +1,23 @@
 # Notes de version
 
+## 0.7.0 — 2026-11-04
+
+### Assistant natif — [#20](https://github.com/FabLabCAM/core/issues/20)
+
+- Panneau commun aux pages CAO, 3D, Simulation, Scripts, Outils, Profils et Meubles ;
+  conversation Markdown, contexte filtrable/épinglable et historique local.
+- Modes Ask, Plan et Agent ; propositions éditables, aperçu calculé sur copie,
+  application explicite de chaque lot, refus des états obsolètes, annuler/rétablir.
+- Actions dessin, Rhai, meubles/composition/assemblages, outillage, opérations
+  et préparation d’exports par dialogue natif. Aucun pilotage de CNC.
+- OpenAI Responses, Claude Messages, Mistral et Ollama : streaming, test des outils,
+  annulation, délais, erreurs classées et clés séparées dans le coffre système.
+- Exécution Rhai hors rendu, limites et imports désactivés ; export ZIP hors rendu.
+- Tests déterministes des quatre protocoles et essais réels Mistral Small.
+  OpenAI, Claude et Ollama restent à qualifier avec leurs services réels ;
+  l’issue #20 reste ouverte pour ce suivi.
+- Guide illustré, architecture, mémoire et rapport de validation actualisés.
+
 ## 0.6.1 — 2026-11-04
 
 ### Identifiants de formes dans les scripts — [#19](https://github.com/FabLabCAM/core/issues/19)
