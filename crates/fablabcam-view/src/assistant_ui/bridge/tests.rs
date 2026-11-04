@@ -25,6 +25,7 @@ fn stage(app: &mut App, actions: Vec<Action>) {
         missing: vec![],
         steps: actions.into_iter().map(|action| Step { explanation: "Test".into(), action }).collect(),
     };
+    app.assistant.plan = Some(plan.clone());
     app.assistant.prepared = Some(assistant::actions::prepare(&w, &context, plan, Mode::Plan, Arc::new(AtomicBool::new(false))).unwrap());
     app.assistant.context = Some(context);
 }
@@ -104,4 +105,34 @@ fn page_navigation_keeps_conversation_and_correct_context() {
         assert_eq!(app.assistant.session.entries.len(), 1);
         assert_eq!(app.assistant.session.connection().model, "synthetic-model");
     }
+}
+
+#[test]
+fn simulation_context_distinguishes_total_and_simulated_distance() {
+    let mut app = app();
+    app.sim = Some((
+        app.studio.rev,
+        0.55,
+        0.5,
+        fablabcam_studio::sim::SimOutput {
+            map: fablabcam_studio::sim::Heightmap { min: [0.0, 0.0], res: 0.5, nx: 2, ny: 2, top: 0.0, bottom: -4.0, h: vec![0.0; 4] },
+            gouges: vec![],
+            total_len: 1000.0,
+        },
+    ));
+    let c = app.assistant_context(&app.assistant_workspace()).unwrap();
+    assert_eq!(c.data["simulation"]["total_path_length_mm"], 1000.0);
+    assert_eq!(c.data["simulation"]["simulated_path_length_mm"], 550.0);
+    assert_eq!(c.data["simulation"]["complete"], false);
+    assert_eq!(c.data["simulation"]["stock"]["bottom"], -4.0);
+}
+
+#[test]
+fn edited_plan_cannot_apply_an_older_preview() {
+    let mut app = app();
+    stage(&mut app, vec![Action::ReplaceScript { code: "circle(1,1,1);".into() }]);
+    let before = app.script_code.clone();
+    app.assistant.plan.as_mut().unwrap().steps.clear();
+    assert!(app.assistant_apply(&egui::Context::default()).is_err());
+    assert_eq!(app.script_code, before);
 }

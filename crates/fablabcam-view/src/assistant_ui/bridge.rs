@@ -40,7 +40,8 @@ impl App {
                 "current":*rev==self.studio.rev,"complete":*fraction>=1.0,"gouges":out.gouges.len(),
                 "stock":{"min":out.map.min,"grid_size":[out.map.nx,out.map.ny],"resolution_mm":out.map.res,"top":out.map.top,"bottom":out.map.bottom},
                 "gouge_details":out.gouges.iter().take(50).map(|g|serde_json::json!({"kind":format!("{:?}",g.kind),"position":g.pos,"operation":g.op})).collect::<Vec<_>>(),
-                "gouge_details_truncated":out.gouges.len()>50,"path_length_mm":out.total_len,
+                "gouge_details_truncated":out.gouges.len()>50,"total_path_length_mm":out.total_len,
+                "simulated_path_length_mm":out.total_len*fraction.clamp(0.0,1.0),
                 "scope":"Simulation de matière 2.5D ; pas une qualification machine"})
             }
             None => serde_json::json!({"available":false,"complete":false}),
@@ -159,6 +160,9 @@ impl App {
     }
     fn assistant_apply(&mut self, ctx: &egui::Context) -> Result<(), String> {
         let prepared = self.assistant.prepared.as_ref().ok_or("Préparez l'aperçu")?;
+        if serde_json::to_value(&self.assistant.plan).ok() != serde_json::to_value(&prepared.plan).ok() {
+            return Err("Plan modifié : préparez un nouvel aperçu".into());
+        }
         let w = self.assistant_workspace();
         let current = self.assistant_context(&w)?;
         let c = self.assistant.active_connection.clone().ok_or("Connexion absente")?;

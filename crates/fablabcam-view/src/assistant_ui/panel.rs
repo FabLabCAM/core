@@ -125,43 +125,53 @@ impl AssistantUi {
                     if !self.partial.is_empty() {
                         ui.label(&self.partial);
                     }
-                    if let Some(plan) = &mut self.plan {
-                        ui.separator();
-                        ui.heading("Proposition");
-                        let before = serde_json::to_string(plan).unwrap_or_default();
-                        ui.text_edit_singleline(&mut plan.title);
-                        for assumption in &plan.assumptions {
-                            ui.small(format!("Hypothèse · {assumption}"));
-                        }
-                        plan.missing.retain_mut(|missing| {
-                            let mut resolved = false;
-                            ui.colored_label(egui::Color32::YELLOW, "À préciser avant préparation");
-                            ui.add(egui::TextEdit::multiline(missing).desired_rows(2).desired_width(f32::INFINITY));
-                            if ui.button("J'ai renseigné ce point dans les paramètres").clicked() {
-                                resolved = true;
+                    ui.add_enabled_ui(self.job.is_none(), |ui| {
+                        if let Some(plan) = &mut self.plan {
+                            ui.separator();
+                            ui.heading("Proposition");
+                            let before = serde_json::to_string(plan).unwrap_or_default();
+                            ui.text_edit_singleline(&mut plan.title);
+                            for assumption in &plan.assumptions {
+                                ui.small(format!("Hypothèse · {assumption}"));
                             }
-                            !resolved
-                        });
-                        for (i, step) in plan.steps.iter_mut().enumerate() {
-                            egui::CollapsingHeader::new(format!("{}. {}", i + 1, step.action.label())).id_source(("plan-step", i)).show(
-                                ui,
-                                |ui| {
-                                    ui.add(egui::TextEdit::multiline(&mut step.explanation).desired_rows(2).desired_width(f32::INFINITY));
-                                    let mut value = serde_json::to_value(&step.action).unwrap_or_default();
-                                    edit_parameters(ui, &mut value);
-                                    if let Ok(a) = serde_json::from_value(value) {
-                                        step.action = a;
-                                    }
-                                },
-                            );
+                            plan.missing.retain_mut(|missing| {
+                                let mut resolved = false;
+                                ui.colored_label(egui::Color32::YELLOW, "À préciser avant préparation");
+                                ui.add(egui::TextEdit::multiline(missing).desired_rows(2).desired_width(f32::INFINITY));
+                                if ui.button("J'ai renseigné ce point dans les paramètres").clicked() {
+                                    resolved = true;
+                                }
+                                !resolved
+                            });
+                            let mut remove_step = None;
+                            for (i, step) in plan.steps.iter_mut().enumerate() {
+                                egui::CollapsingHeader::new(format!("{}. {}", i + 1, step.action.label()))
+                                    .id_source(("plan-step", i))
+                                    .show(ui, |ui| {
+                                        ui.add(
+                                            egui::TextEdit::multiline(&mut step.explanation).desired_rows(2).desired_width(f32::INFINITY),
+                                        );
+                                        if ui.small_button("Retirer cette étape").clicked() {
+                                            remove_step = Some(i);
+                                        }
+                                        let mut value = serde_json::to_value(&step.action).unwrap_or_default();
+                                        edit_parameters(ui, &mut value);
+                                        if let Ok(a) = serde_json::from_value(value) {
+                                            step.action = a;
+                                        }
+                                    });
+                            }
+                            if let Some(i) = remove_step {
+                                plan.steps.remove(i);
+                            }
+                            if before != serde_json::to_string(plan).unwrap_or_default() {
+                                self.prepared = None;
+                            }
+                            if ui.add_enabled(self.job.is_none(), egui::Button::new("Préparer l'aperçu")).clicked() {
+                                action = Some(UiAction::Prepare);
+                            }
                         }
-                        if before != serde_json::to_string(plan).unwrap_or_default() {
-                            self.prepared = None;
-                        }
-                        if ui.add_enabled(self.job.is_none(), egui::Button::new("Préparer l'aperçu")).clicked() {
-                            action = Some(UiAction::Prepare);
-                        }
-                    }
+                    });
                     if let Some(p) = &self.prepared {
                         ui.separator();
                         ui.strong("Changements préparés");

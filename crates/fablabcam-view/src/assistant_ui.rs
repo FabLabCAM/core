@@ -129,6 +129,11 @@ impl AssistantUi {
                     self.partial.clear();
                 }
                 assistant::worker::Event::Prepared(p) => {
+                    if serde_json::to_value(&self.plan).ok() != serde_json::to_value(&p.plan).ok() {
+                        self.job = None;
+                        self.message = "Plan modifié : aperçu abandonné, préparez à nouveau".into();
+                        continue;
+                    }
                     self.prepared = Some(*p);
                     self.job = None;
                     self.message = "Aperçu calculé — vérifiez les changements avant application".into();

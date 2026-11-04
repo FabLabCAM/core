@@ -10,6 +10,8 @@
 - Ne jamais appliquer un résultat obsolète : empreintes document/révision/contenu,
   page/sélection/filtres et identité fournisseur/modèle. Éditer un plan invalide
   son aperçu. Un lot dessin/script/meuble possède une annulation commune.
+- QA UI : distinguer longueur totale/simulée ; comparer aussi le plan affiché
+  au plan préparé avant installation. Interdire son édition pendant le worker.
 - `PreparedProject` associe projet et caches calculés hors rendu ; ne pas les
   désynchroniser. Le runner Rhai manuel partage les limites et tourne en worker.
 - Adaptateurs genai explicitement fixés ; continuer avec le protocole natif de

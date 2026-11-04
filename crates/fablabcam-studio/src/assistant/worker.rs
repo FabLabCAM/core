@@ -55,7 +55,21 @@ impl Job {
                     }
                 })
             })();
-            log(id, connection.provider.label(), mode, if result.is_ok() { "complete" } else { "error" }, started.elapsed());
+            let model = super::storage::redact(&connection.model, &secret).chars().take(128).collect::<String>();
+            let actions = result
+                .as_ref()
+                .ok()
+                .and_then(|r| r.plan.as_ref())
+                .map(|p| p.steps.iter().map(|s| s.action.label()).collect::<Vec<_>>())
+                .unwrap_or_default();
+            log(
+                id,
+                connection.provider.label(),
+                mode,
+                if result.is_ok() { "complete" } else { "error" },
+                started.elapsed(),
+                serde_json::json!({"model":model,"actions":actions}),
+            );
             let event = match result {
                 Ok(mut r) => {
                     r.text = super::storage::redact(&r.text, &secret);
@@ -77,8 +91,16 @@ impl Job {
         let flag = cancelled.clone();
         std::thread::spawn(move || {
             let started = Instant::now();
+            let labels = plan.steps.iter().map(|s| s.action.label()).collect::<Vec<_>>();
             let result = actions::prepare(&w, &context, plan, mode, flag);
-            log(id, "domain", mode, if result.is_ok() { "prepared" } else { "error" }, started.elapsed());
+            log(
+                id,
+                "domain",
+                mode,
+                if result.is_ok() { "prepared" } else { "error" },
+                started.elapsed(),
+                serde_json::json!({"actions":labels}),
+            );
             send(
                 &tx,
                 &wake,
@@ -101,9 +123,9 @@ fn send(tx: &Sender<Event>, wake: &Arc<dyn Fn() + Send + Sync>, event: Event) {
         wake();
     }
 }
-fn log(id: u64, provider: &str, mode: Mode, status: &str, duration: Duration) {
+fn log(id: u64, provider: &str, mode: Mode, status: &str, duration: Duration, details: serde_json::Value) {
     eprintln!(
         "{}",
-        serde_json::json!({"component":"assistant","request":id,"provider":provider,"mode":mode,"status":status,"duration_ms":duration.as_millis()})
+        serde_json::json!({"component":"assistant","request":id,"provider":provider,"mode":mode,"status":status,"duration_ms":duration.as_millis(),"details":details})
     );
 }

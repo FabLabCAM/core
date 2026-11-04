@@ -26,7 +26,9 @@ rayon des cercles, déplacement, remplacement/exécution Rhai séparés, caisson
 dimensions de meuble, division de case vide, bac, assemblage existant,
 création/duplication/modification d'outil, création/modification d'opération,
 préparation d'export CB/SVG/DXF/G-code/JSON meuble/ZIP.
-Les paramètres numériques et textuels sont éditables avant recalcul.
+Les paramètres numériques et textuels sont éditables avant recalcul. Une étape
+peut être retirée ; l’édition est verrouillée pendant une préparation. Le pont
+vérifie aussi que le plan affiché correspond exactement à l’aperçu.
 Les identifiants de formes sont affichés en lecture seule dans le plan.
 
 Un export est un lot distinct et ouvre un choix natif de destination. Il ne
@@ -83,7 +85,7 @@ plein calcul ; les limites de conteneurs ne constituent pas un quota global de
 mémoire du processus. TODO(agent) : isolation de processus si des scripts hostiles
 ou des calculs géométriques très coûteux doivent être acceptés.
 
-Journaux JSON : composant, requête, fournisseur, mode, statut et durée, sans
+Journaux JSON : composant, requête, fournisseur, modèle, mode, actions, statut et durée, sans
 contenu du projet ni secret. Le détail UI montre modèle, tour et empreinte de
 contexte. La simulation indique sa progression réelle, révision, brut et gouges ;
 une simulation partielle ne devient jamais une validation machine.

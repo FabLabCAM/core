@@ -67,7 +67,7 @@ impl FurnitureUi {
             (Some(d),Some(next)) if d.document.id()==next.id()=>{
                 let previous=std::mem::replace(&mut d.document,next);d.record(previous);
             }
-            (_,Some(next))=>{self.models=next.is_template();self.draft=Some(Draft::new(next));self.step=1;self.composing=true;}
+            (_,Some(next))=>{self.models=next.is_template();self.draft=Some(Draft::new(next));self.step=0;self.composing=true;}
             (_,None)=>self.draft=None,
         }
     }
