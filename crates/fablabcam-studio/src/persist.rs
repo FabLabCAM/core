@@ -10,7 +10,10 @@ use crate::project::*;
 use fablabcam_model::{parse_cb, write_cb};
 
 fn esc(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('"', "&quot;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
 
 fn esc_multiline(s: &str) -> String {
@@ -44,9 +47,17 @@ fn cam_attrs(c: &CamSettings) -> Vec<(&'static str, String)> {
 
 fn read_cam(n: roxmltree::Node) -> CamSettings {
     let d = CamSettings::default();
-    let f = |k: &str, v: f64| n.attribute(k).and_then(|x| x.parse::<f64>().ok()).unwrap_or(v);
+    let f = |k: &str, v: f64| {
+        n.attribute(k)
+            .and_then(|x| x.parse::<f64>().ok())
+            .unwrap_or(v)
+    };
     let b = |k: &str, v: bool| n.attribute(k).map_or(v, |x| x == "true");
-    let u = |k: &str, v: u32| n.attribute(k).and_then(|x| x.parse::<u32>().ok()).unwrap_or(v);
+    let u = |k: &str, v: u32| {
+        n.attribute(k)
+            .and_then(|x| x.parse::<u32>().ok())
+            .unwrap_or(v)
+    };
     CamSettings {
         clearance: f("Clearance", d.clearance),
         surface: f("Surface", d.surface),
@@ -57,13 +68,19 @@ fn read_cam(n: roxmltree::Node) -> CamSettings {
         corner_overcut: b("CornerOvercut", d.corner_overcut),
         max_crossover: f("MaxCrossover", d.max_crossover),
         spindle_ccw: b("SpindleCCW", d.spindle_ccw),
-        tab_shape: n.attribute("TabShape").and_then(TabShape::from_key).unwrap_or(d.tab_shape),
+        tab_shape: n
+            .attribute("TabShape")
+            .and_then(TabShape::from_key)
+            .unwrap_or(d.tab_shape),
         tab_width: f("TabWidth", d.tab_width),
         tab_height: f("TabHeight", d.tab_height),
         tab_min: u("TabMin", d.tab_min),
         tab_max: u("TabMax", d.tab_max),
         tab_distance: f("TabDistance", d.tab_distance),
-        tab_target: n.attribute("TabMethod").and_then(TabTarget::from_key).unwrap_or(d.tab_target),
+        tab_target: n
+            .attribute("TabMethod")
+            .and_then(TabTarget::from_key)
+            .unwrap_or(d.tab_target),
         tab_threshold: f("TabThreshold", d.tab_threshold),
         lead_angle: f("LeadAngle", d.lead_angle),
         lead_radius: f("LeadRadius", d.lead_radius),
@@ -90,11 +107,18 @@ pub fn save(p: &Project) -> String {
         ext += &format!("<FurnitureMachine>{}</FurnitureMachine>\n", esc(&json));
     }
     if !p.furniture_requirements.is_empty() {
-        let json=serde_json::to_string(&p.furniture_requirements).expect("validated fabrication requirements");
-        ext += &format!("<FurnitureOperations>{}</FurnitureOperations>\n",esc(&json));
+        let json = serde_json::to_string(&p.furniture_requirements)
+            .expect("validated fabrication requirements");
+        ext += &format!(
+            "<FurnitureOperations>{}</FurnitureOperations>\n",
+            esc(&json)
+        );
     }
     if let Some(s) = p.stock {
-        ext += &format!("<Stock MinX=\"{}\" MinY=\"{}\" MaxX=\"{}\" MaxY=\"{}\" Top=\"{}\" Bottom=\"{}\"/>\n", s.min[0], s.min[1], s.max[0], s.max[1], s.top, s.bottom);
+        ext += &format!(
+            "<Stock MinX=\"{}\" MinY=\"{}\" MaxX=\"{}\" MaxY=\"{}\" Top=\"{}\" Bottom=\"{}\"/>\n",
+            s.min[0], s.min[1], s.max[0], s.max[1], s.top, s.bottom
+        );
     }
     if p.gcode_inches {
         ext += "<Settings GcodeUnits=\"in\"/>\n";
@@ -117,7 +141,14 @@ pub fn save(p: &Project) -> String {
                 extra += &format!(" {k}=\"{v}\"");
             }
         }
-        for (k, v) in [("Material", &t.material), ("Coating", &t.coating), ("PartCode", &t.part_code), ("Notes", &t.notes), ("Comment", &t.comment), ("ToolChange", &t.tool_change)] {
+        for (k, v) in [
+            ("Material", &t.material),
+            ("Coating", &t.coating),
+            ("PartCode", &t.part_code),
+            ("Notes", &t.notes),
+            ("Comment", &t.comment),
+            ("ToolChange", &t.tool_change),
+        ] {
             if !v.is_empty() {
                 extra += &format!(" {k}=\"{}\"", esc_multiline(v));
             }
@@ -129,13 +160,26 @@ pub fn save(p: &Project) -> String {
     }
     ext += "</Tools>\n<Operations>\n";
     for o in &p.ops {
-        let refs: Vec<String> = o.shapes.iter().filter_map(|id| order.iter().position(|x| x == id)).map(|i| (i + 1).to_string()).collect();
+        let refs: Vec<String> = o
+            .shapes
+            .iter()
+            .filter_map(|id| order.iter().position(|x| x == id))
+            .map(|i| (i + 1).to_string())
+            .collect();
         let mut extra = String::new();
-        for (k, v) in [("Feed", o.feed), ("Plunge", o.plunge), ("Spindle", o.spindle)] {
+        for (k, v) in [
+            ("Feed", o.feed),
+            ("Plunge", o.plunge),
+            ("Spindle", o.spindle),
+        ] {
             extra += &opt(v).replace("{K}", k);
         }
         if !o.tab_points.is_empty() {
-            let pts: Vec<String> = o.tab_points.iter().map(|t| format!("{},{}", t[0], t[1])).collect();
+            let pts: Vec<String> = o
+                .tab_points
+                .iter()
+                .map(|t| format!("{},{}", t[0], t[1]))
+                .collect();
             extra += &format!(" TabPoints=\"{}\"", pts.join(" "));
         }
         let defaults = cam_attrs(&CamSettings::default());
@@ -180,35 +224,65 @@ pub fn load_with_notes(xml: &str) -> Result<(Project, Vec<String>), String> {
     let mut p = Project::from_document(&doc);
     // identifiant XML → forme, dans l'ordre de `from_document`
     let mut cb_ids: std::collections::HashMap<u32, Vec<u32>> = std::collections::HashMap::new();
-    let ranks = doc.layers.iter().flat_map(|l| (0..l.entities.len()).map(move |i| l.ids.get(i).copied().flatten()));
+    let ranks = doc
+        .layers
+        .iter()
+        .flat_map(|l| (0..l.entities.len()).map(move |i| l.ids.get(i).copied().flatten()));
     for (cb, s) in ranks.zip(p.shapes.iter().map(|s| s.id)) {
         if let Some(cb) = cb {
             cb_ids.entry(cb).or_default().push(s);
         }
     }
-    let tree = roxmltree::Document::parse(xml.trim_start_matches('\u{feff}')).map_err(|e| e.to_string())?;
+    let tree = roxmltree::Document::parse(xml.trim_start_matches('\u{feff}'))
+        .map_err(|e| e.to_string())?;
     let root = tree.root_element();
     let f = |n: roxmltree::Node, k: &str| n.attribute(k).and_then(|v| v.parse::<f64>().ok());
     for n in root.children().filter(|n| n.is_element()) {
         match n.tag_name().name() {
             "FurnitureOperations" => {
-                if !p.furniture_requirements.is_empty(){return Err("Plusieurs plans FurnitureOperations".into());}
-                p.furniture_requirements=serde_json::from_str(n.text().unwrap_or("")).map_err(|e|format!("Plan de fabrication invalide : {e}"))?;
-                for requirement in &p.furniture_requirements {requirement.check()?;}
+                if !p.furniture_requirements.is_empty() {
+                    return Err("Plusieurs plans FurnitureOperations".into());
+                }
+                p.furniture_requirements = serde_json::from_str(n.text().unwrap_or(""))
+                    .map_err(|e| format!("Plan de fabrication invalide : {e}"))?;
+                for requirement in &p.furniture_requirements {
+                    requirement.check()?;
+                }
             }
             "FurnitureMachine" => {
-                if p.machine_profile.is_some() { return Err("Plusieurs profils FurnitureMachine dans le document".into()); }
-                p.machine_profile = Some(fablabcam_cam::gcode::machine::Profile::from_json(n.text().unwrap_or(""))?);
+                if p.machine_profile.is_some() {
+                    return Err("Plusieurs profils FurnitureMachine dans le document".into());
+                }
+                p.machine_profile = Some(fablabcam_cam::gcode::machine::Profile::from_json(
+                    n.text().unwrap_or(""),
+                )?);
             }
             "Settings" => p.gcode_inches = n.attribute("GcodeUnits") == Some("in"),
             "Stock" => {
-                if let (Some(a), Some(b), Some(c), Some(d), Some(t)) = (f(n, "MinX"), f(n, "MinY"), f(n, "MaxX"), f(n, "MaxY"), f(n, "Top")) {
-                    p.stock = Some(Stock { min: [a, b], max: [c, d], top: t, bottom: f(n, "Bottom").unwrap_or(t - 10.0) });
+                if let (Some(a), Some(b), Some(c), Some(d), Some(t)) = (
+                    f(n, "MinX"),
+                    f(n, "MinY"),
+                    f(n, "MaxX"),
+                    f(n, "MaxY"),
+                    f(n, "Top"),
+                ) {
+                    p.stock = Some(Stock {
+                        min: [a, b],
+                        max: [c, d],
+                        top: t,
+                        bottom: f(n, "Bottom").unwrap_or(t - 10.0),
+                    });
                 }
             }
             "Tools" => {
-                for t in n.children().filter(|c| c.is_element() && c.tag_name().name() == "Tool") {
-                    let kind = t.attribute("Kind").and_then(ToolKind::from_key).unwrap_or(ToolKind::EndMill);
+                for t in n
+                    .children()
+                    .filter(|c| c.is_element() && c.tag_name().name() == "Tool")
+                {
+                    let kind = t
+                        .attribute("Kind")
+                        .and_then(ToolKind::from_key)
+                        .unwrap_or(ToolKind::EndMill);
                     let s = |k: &str| t.attribute(k).unwrap_or("").to_string();
                     let tool = Tool {
                         // sans `Index` (anciens documents) : numéro attribué dans l'ordre de la table
@@ -221,7 +295,11 @@ pub fn load_with_notes(xml: &str) -> Result<(Project, Vec<String>), String> {
                         length: f(t, "Length").unwrap_or(0.0),
                         shank_diameter: f(t, "ShankDiameter").unwrap_or(0.0),
                         helix_angle: f(t, "HelixAngle").unwrap_or(0.0),
-                        vee_angle: f(t, "VeeAngle").unwrap_or(if kind == ToolKind::VBit { 90.0 } else { 0.0 }),
+                        vee_angle: f(t, "VeeAngle").unwrap_or(if kind == ToolKind::VBit {
+                            90.0
+                        } else {
+                            0.0
+                        }),
                         max_ramp_angle: f(t, "MaxRampAngle").unwrap_or(0.0),
                         axial_depth: f(t, "AxialDepth").unwrap_or(0.0),
                         radial_depth: f(t, "RadialDepth").unwrap_or(0.0),
@@ -232,13 +310,20 @@ pub fn load_with_notes(xml: &str) -> Result<(Project, Vec<String>), String> {
                         notes: s("Notes"),
                         comment: s("Comment"),
                         tool_change: s("ToolChange"),
-                        ..Tool::new(t.attribute("Name").unwrap_or(""), kind, f(t, "Diameter").unwrap_or(3.0))
+                        ..Tool::new(
+                            t.attribute("Name").unwrap_or(""),
+                            kind,
+                            f(t, "Diameter").unwrap_or(3.0),
+                        )
                     };
                     p.add_tool(tool).map_err(|e| e.to_string())?;
                 }
             }
             "Operations" => {
-                for o in n.children().filter(|c| c.is_element() && c.tag_name().name() == "Operation") {
+                for o in n
+                    .children()
+                    .filter(|c| c.is_element() && c.tag_name().name() == "Operation")
+                {
                     let shapes: Vec<u32> = o
                         .attribute("Shapes")
                         .unwrap_or("")
@@ -246,12 +331,23 @@ pub fn load_with_notes(xml: &str) -> Result<(Project, Vec<String>), String> {
                         .filter_map(|r| r.parse::<usize>().ok())
                         .filter_map(|r| p.shapes.get(r.wrapping_sub(1)).map(|s| s.id))
                         .collect();
-                    let kind = o.attribute("Kind").and_then(OpKind::from_key).ok_or("opération sans type valide")?;
+                    let kind = o
+                        .attribute("Kind")
+                        .and_then(OpKind::from_key)
+                        .ok_or("opération sans type valide")?;
                     let id = p
-                        .add_operation(kind, o.attribute("Name").unwrap_or("op"), shapes, o.attribute("Tool").unwrap_or(""))
+                        .add_operation(
+                            kind,
+                            o.attribute("Name").unwrap_or("op"),
+                            shapes,
+                            o.attribute("Tool").unwrap_or(""),
+                        )
                         .map_err(|e| e.to_string())?;
                     p.update_operation(id, |op| {
-                        op.side = o.attribute("Side").and_then(OpSide::from_key).unwrap_or(op.side);
+                        op.side = o
+                            .attribute("Side")
+                            .and_then(OpSide::from_key)
+                            .unwrap_or(op.side);
                         op.depth = f(o, "Depth").unwrap_or(op.depth);
                         op.step_down = f(o, "StepDown").unwrap_or(op.step_down);
                         op.step_over = f(o, "StepOver").unwrap_or(op.step_over);
@@ -267,9 +363,15 @@ pub fn load_with_notes(xml: &str) -> Result<(Project, Vec<String>), String> {
                             .attribute("TabPoints")
                             .unwrap_or("")
                             .split_whitespace()
-                            .filter_map(|s| s.split_once(',').and_then(|(x, y)| Some([x.parse().ok()?, y.parse().ok()?])))
+                            .filter_map(|s| {
+                                s.split_once(',')
+                                    .and_then(|(x, y)| Some([x.parse().ok()?, y.parse().ok()?]))
+                            })
                             .collect();
-                        op.lead = o.attribute("Lead").and_then(LeadChoice::from_key).unwrap_or(op.lead);
+                        op.lead = o
+                            .attribute("Lead")
+                            .and_then(LeadChoice::from_key)
+                            .unwrap_or(op.lead);
                         op.enabled = o.attribute("Enabled").is_none_or(|v| v == "true");
                         op.feed = f(o, "Feed");
                         op.plunge = f(o, "Plunge");

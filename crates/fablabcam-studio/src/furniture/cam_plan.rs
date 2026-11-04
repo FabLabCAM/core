@@ -67,6 +67,7 @@ pub(super) fn check_requirements(project: &Project) -> Result<(), String> {
                     && o.shapes.contains(&shape.id)
                     && if requirement.pocket {
                         o.kind == OpKind::Pocket
+                            && o.shapes == [shape.id]
                             && (o.depth + requirement.depth).abs() < 1e-6
                             && o.stock_to_leave.abs() < 1e-6
                     } else {
@@ -86,7 +87,7 @@ pub(super) fn check_requirements(project: &Project) -> Result<(), String> {
                     "Préparer l’opération {} : {} à {:.2} mm",
                     requirement.layer,
                     if requirement.pocket {
-                        "poche"
+                        "poche sur ce seul contour"
                     } else {
                         "profil"
                     },

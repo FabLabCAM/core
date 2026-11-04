@@ -26,13 +26,9 @@ pub fn structure(d: &Dimensions) -> Result<Structure, String> {
         return Ok(result);
     };
     c.check()?;
+    let (shell, origin, size) = super::shell::build(d, c);
+    result.panels = shell;
     let t = d.thickness;
-    let origin = [t, 0.0, t];
-    let size = [
-        d.width - 2.0 * t,
-        d.depth - if d.back { t } else { 0.0 },
-        d.height - 2.0 * t,
-    ];
     if size.iter().any(|v| !v.is_finite() || *v <= 0.0) {
         return Err("Dimensions intérieures impossibles".into());
     }
@@ -95,11 +91,15 @@ fn resolve(
             let mut po = o;
             let mut ps = size;
             po[axis] += end;
-            ps[axis] = t;
+            ps[axis] = divider.thickness.unwrap_or(t);
+            ps[1] = divider.depth.unwrap_or(size[1]);
+            if ps[1] > size[1] || ps[1] <= 0.0 {
+                return Err(format!("{} : profondeur hors de la case", divider.name));
+            }
             out.panels
                 .push(panel(&divider.id, &divider.name, po, ps, axis));
         }
-        start = end + t;
+        start = end + d.dividers.get(i).map_or(t, |p| p.thickness.unwrap_or(t));
     }
     Ok(())
 }
@@ -126,22 +126,31 @@ fn bins(c: &Cell, b: &Bin, o: [f64; 3], s: [f64; 3], out: &mut Structure) -> Res
     let x = o[0] + b.side_gap;
     let y = o[1];
     let z = o[2];
+    let bottom = if b.bottom_covers_sides { t } else { 0.0 };
+    let wall_z = z + bottom;
+    let wall_h = h - bottom;
     for (suffix, label, origin, size, normal) in [
-        ("L", "gauche", [x, y, z], [t, depth, h], 0),
-        ("R", "droit", [x + w - t, y, z], [t, depth, h], 0),
+        ("L", "gauche", [x, y, wall_z], [t, depth, wall_h], 0),
+        ("R", "droit", [x + w - t, y, wall_z], [t, depth, wall_h], 0),
         (
             "B",
             "fond",
-            [x + t, y + t, z],
-            [w - 2.0 * t, depth - 2.0 * t, t],
+            [x + t - bottom, y + t - bottom, z],
+            [w - 2.0 * (t - bottom), depth - 2.0 * (t - bottom), t],
             2,
         ),
-        ("F", "façade", [x + t, y, z], [w - 2.0 * t, t, h], 1),
+        (
+            "F",
+            "façade",
+            [x + t, y, wall_z],
+            [w - 2.0 * t, t, wall_h],
+            1,
+        ),
         (
             "A",
             "arrière",
-            [x + t, y + depth - t, z],
-            [w - 2.0 * t, t, h],
+            [x + t, y + depth - t, wall_z],
+            [w - 2.0 * t, t, wall_h],
             1,
         ),
     ] {

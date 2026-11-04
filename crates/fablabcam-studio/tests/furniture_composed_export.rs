@@ -1,7 +1,7 @@
 use fablabcam_studio::{furniture::*, persist};
 fn project() -> Furniture {
     let mut t = Template::cabinet();
-    t.defaults.composition = Some(Box::new(Composition::from_dimensions(&t.defaults)));
+    t.defaults.composition = Some(Box::new(Composition::from_dimensions(&t.defaults).unwrap()));
     let mut f = Furniture::from_template(t);
     let link = connections(&structure(&f.dimensions).unwrap().panels)
         .into_iter()

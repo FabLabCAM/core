@@ -15,9 +15,13 @@ pub(super) fn pdf(job: &Furniture, layout: &Layout) -> Vec<u8> {
             d.width, d.depth, d.height
         ),
         format!(
-            "Épaisseur : {} mm. {} tablette(s). {} dalle(s).",
+            "Épaisseur principale : {} mm. {} pièce(s). {} dalle(s).",
             d.thickness,
-            d.shelves,
+            layout
+                .sheets
+                .iter()
+                .map(|s| s.placements.len())
+                .sum::<usize>(),
             layout.sheets.len()
         ),
         if d.composition.is_some() {
@@ -28,7 +32,7 @@ pub(super) fn pdf(job: &Furniture, layout: &Layout) -> Vec<u8> {
         "".into(),
         "1. Repérer chaque pièce avant de retirer les panneaux de la dalle.".into(),
         "2. Ébavurer et vérifier les cotes ; préparer le vissage adapté au matériau.".into(),
-        "3. Placer INF et SUP entre les côtés C1 et C2 ; vérifier l'équerrage.".into(),
+        "3. Assembler INF, SUP, C1 et C2 selon les liaisons ; vérifier l'équerrage.".into(),
         if d.composition.is_some() {
             "4. Monter séparations et bacs selon leurs repères et coordonnées.".into()
         } else {
@@ -54,9 +58,10 @@ pub(super) fn pdf(job: &Furniture, layout: &Layout) -> Vec<u8> {
             } else {
                 "—".into()
             };
+            lines.push(p.panel.id.clone());
             lines.push(format!(
-                "{}\t{} × {} × {}\t{}\t{z}",
-                p.panel.id,
+                "{}\t{:.2} × {:.2} × {:.2}\t{}\t{z}",
+                "",
                 p.panel.width,
                 p.panel.height,
                 p.panel.thickness,
@@ -69,12 +74,13 @@ pub(super) fn pdf(job: &Furniture, layout: &Layout) -> Vec<u8> {
         lines.push("ASSEMBLAGES ET MONTAGES".into());
         lines.push("Verso avant contours recto ; retournement autour de Y, miroir X.".into());
         lines.push("Repérage, bridage et origines à définir pour chaque montage.".into());
+        lines.push("Sans dégagement : finir les angles internes manuellement.".into());
         for sheet in &layout.sheets {
             for p in &sheet.placements {
                 for f in &p.panel.features {
+                    lines.push(p.panel.id.clone());
                     lines.push(format!(
-                        "{} : {:?}, profondeur {:.2} mm{}",
-                        p.panel.id,
+                        "  {:?}, profondeur {:.2} mm{}",
                         f.face,
                         f.depth,
                         if f.through { " traversant" } else { " borgne" }
@@ -83,7 +89,37 @@ pub(super) fn pdf(job: &Furniture, layout: &Layout) -> Vec<u8> {
             }
         }
     }
-    let pages = lines.chunks(38).collect::<Vec<_>>();
+    let lines = lines
+        .into_iter()
+        .flat_map(|line| {
+            if line.contains('\t') || line.chars().count() <= 78 {
+                return vec![line];
+            }
+            let mut result = Vec::new();
+            let mut current = String::new();
+            for ch in line.chars() {
+                current.push(ch);
+                if current.chars().count() == 78 {
+                    result.push(std::mem::take(&mut current));
+                }
+            }
+            if !current.is_empty() {
+                result.push(current);
+            }
+            result
+        })
+        .collect::<Vec<_>>();
+    // Keep each stable part ID with its dimensions/operation on the same page.
+    let mut pages = Vec::new();
+    let mut start = 0;
+    while start < lines.len() {
+        let mut end = (start + 38).min(lines.len());
+        if end < lines.len() && (lines[end].starts_with('\t') || lines[end].starts_with("  ")) {
+            end -= 1;
+        }
+        pages.push(&lines[start..end]);
+        start = end;
+    }
     let mut pdf = Pdf::new();
     let root = Ref::new(1);
     let tree = Ref::new(2);

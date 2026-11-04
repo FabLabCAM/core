@@ -1,6 +1,6 @@
 use super::{Document, FurnitureUi, Pending};
 use eframe::egui;
-use fablabcam_studio::furniture::panels;
+use fablabcam_studio::furniture::panels_with_cutter;
 
 impl FurnitureUi {
     pub(super) fn editor(&mut self, ui: &mut egui::Ui) {
@@ -78,6 +78,7 @@ impl FurnitureUi {
             };
             self.composer.show(ui, &mut draft.document, cutter);
         }
+        draft.document.reconcile_edit(&previous);
         if let Err(e) = draft.document.check() {
             ui.colored_label(egui::Color32::LIGHT_RED, e);
         }
@@ -94,7 +95,15 @@ impl FurnitureUi {
                 },
             );
             ui.collapsing("Liste des pièces", |ui| {
-                if let Ok(parts) = panels(draft.document.template(), draft.document.dimensions()) {
+                let cutter = match &draft.document {
+                    Document::Furniture(f) => f.setup.cutter,
+                    _ => 6.0,
+                };
+                if let Ok(parts) = panels_with_cutter(
+                    draft.document.template(),
+                    draft.document.dimensions(),
+                    cutter,
+                ) {
                     egui::Grid::new("furniture-cut-list")
                         .striped(true)
                         .show(ui, |ui| {
@@ -129,12 +138,19 @@ impl FurnitureUi {
             });
         }
         let editing = ui.ctx().wants_keyboard_input() || ui.input(|i| i.pointer.any_down());
-        draft.record_group(previous, editing);
+        let key = ui.ctx().memory(|m| m.focus()).map(|id| {
+            use std::hash::{Hash, Hasher};
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            id.hash(&mut hasher);
+            hasher.finish()
+        });
+        draft.record_group_scoped(previous, editing, key);
         self.draft = Some(draft);
-        // The duplicate prompt uses the same unsaved-document protection as navigation.
-        if matches!(self.pending, Some(Pending::Duplicate)) && !self.dirty() {
-            self.pending = None;
-            self.execute(Pending::Duplicate);
+        // Actions queued while the draft is borrowed must observe its restored
+        // dirty state, just like normal library navigation.
+        if matches!(self.pending, Some(Pending::Duplicate | Pending::New(_))) && !self.dirty() {
+            let action = self.pending.take().expect("queued editor action");
+            self.execute(action);
         }
     }
 }

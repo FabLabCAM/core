@@ -91,12 +91,50 @@ impl Document {
             }
         }
     }
+    /// Explicit UI edits can remove a panel or change which panel is continuous.
+    /// Keep compatible overrides by unordered panel pair; never clean an import silently.
+    pub fn reconcile_edit(&mut self, previous: &Self) {
+        if self.dimensions() == previous.dimensions() {
+            return;
+        }
+        let Ok(next) = super::structure(self.dimensions()) else {
+            return;
+        };
+        let links = super::connections(&next.panels);
+        let old = super::structure(previous.dimensions())
+            .map(|s| super::connections(&s.panels))
+            .unwrap_or_default();
+        let Some(c) = &mut self.dimensions_mut().composition else {
+            return;
+        };
+        let overrides = std::mem::take(&mut c.joints);
+        for (id, settings) in overrides {
+            if links.iter().any(|l| l.id == id) {
+                c.joints.insert(id, settings);
+                continue;
+            }
+            if let Some(before) = old.iter().find(|l| l.id == id) {
+                if let Some(after) = links.iter().find(|l| {
+                    (l.male == before.male && l.female == before.female)
+                        || (l.male == before.female && l.female == before.male)
+                }) {
+                    c.joints.insert(after.id.clone(), settings);
+                }
+            }
+        }
+        c.panel_names
+            .retain(|id, _| id == "DOS" || next.panels.iter().any(|p| &p.id == id));
+    }
     pub fn as_template(&self) -> Template {
         let mut t = self.template().clone();
         t.id = new_id();
         t.revision = 1;
         t.schema_version = super::SCHEMA_VERSION;
-        t.name = format!("Modèle — {}", self.name());
+        let mut name = self.name().to_owned();
+        while name.len() > "Modèle — ".len().abs_diff(200) {
+            name.pop();
+        }
+        t.name = format!("Modèle — {name}");
         t.defaults = self.dimensions().clone();
         t
     }
@@ -126,6 +164,7 @@ pub struct Draft {
     undo: Vec<Document>,
     redo: Vec<Document>,
     edit_baseline: Option<Document>,
+    edit_key: Option<u64>,
 }
 impl Draft {
     pub fn new(document: Document) -> Self {
@@ -135,6 +174,7 @@ impl Draft {
             undo: Vec::new(),
             redo: Vec::new(),
             edit_baseline: None,
+            edit_key: None,
         }
     }
     pub fn existing(document: Document) -> Self {
@@ -155,6 +195,19 @@ impl Draft {
         }
         self.undo.push(previous);
         self.redo.clear();
+    }
+    /// Focus identifies a field/action; moving focus ends the preceding edit
+    /// before the new action is added, even when a button retains keyboard focus.
+    pub fn record_group_scoped(&mut self, previous: Document, editing: bool, key: Option<u64>) {
+        if self.edit_key != key {
+            if let Some(baseline) = self.edit_baseline.take() {
+                if baseline != previous {
+                    self.record(baseline);
+                }
+            }
+        }
+        self.edit_key = key;
+        self.record_group(previous, editing);
     }
     pub fn record_group(&mut self, previous: Document, editing: bool) {
         if previous != self.document && self.edit_baseline.is_none() {

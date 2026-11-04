@@ -10,6 +10,7 @@ impl ComposerUi {
         ui.strong("Assemblages");
         let links = connections(&scene.panels);
         egui::ComboBox::from_id_source("joint-selection")
+            .width(ui.available_width())
             .selected_text(if self.joint.is_empty() {
                 "Réglage du meuble"
             } else {
@@ -40,7 +41,11 @@ impl ComposerUi {
         } else {
             let link = links.iter().find(|l| l.id == self.joint).unwrap();
             ui.label(format!("{} ↔ {}", link.male, link.female));
-            ui.label(format!("Face de la mortaise : {:?}", link.female_face));
+            ui.label(format!(
+                "Mâle : {} · femelle : {} · face {:?}",
+                link.male, link.female, link.female_face
+            ));
+            ui.weak("L’orientation suit le panneau continu. Modifiez dessus/dessous ou le fond du bac dans Structure ; une tablette intérieure rejoint nécessairement la face du côté.");
             let overridden = c.joints.contains_key(&self.joint);
             if !overridden && ui.button("Personnaliser cette liaison").clicked() {
                 c.joints.insert(self.joint.clone(), c.joint_default.clone());
@@ -87,6 +92,7 @@ fn panels_for_preview(
 }
 fn settings(ui: &mut egui::Ui, s: &mut JointSettings) {
     egui::ComboBox::from_id_source("joint-kind")
+        .width(ui.available_width())
         .selected_text(s.kind.label())
         .show_ui(ui, |ui| {
             for kind in JointKind::ALL {
@@ -148,6 +154,15 @@ fn settings(ui: &mut egui::Ui, s: &mut JointSettings) {
             ui.selectable_value(&mut s.relief, CornerRelief::Dogbone, "Dogbone");
             ui.selectable_value(&mut s.relief, CornerRelief::Tbone, "T-bone");
         });
+    if s.relief == CornerRelief::None {
+        ui.colored_label(
+            egui::Color32::YELLOW,
+            "Angles internes sans dégagement : finition manuelle nécessaire avant emboîtement.",
+        );
+    }
+    if matches!(s.kind, JointKind::HalfLap | JointKind::TongueGroove) {
+        ui.label("Montage particulier requis : retournement repéré du panneau.");
+    }
 }
 fn vignette(ui: &mut egui::Ui, kind: JointKind) {
     let (r, _) = ui.allocate_exact_size(egui::vec2(150.0, 50.0), egui::Sense::hover());

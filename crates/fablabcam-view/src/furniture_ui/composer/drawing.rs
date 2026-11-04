@@ -5,6 +5,7 @@ pub(super) fn face(
     selected: &mut String,
     width: f64,
     height: f64,
+    pair: Option<&Connection>,
 ) {
     let w = ui.available_width().max(80.0);
     let h = (w * height as f32 / width as f32).clamp(160.0, 300.0);
@@ -45,12 +46,27 @@ pub(super) fn face(
             );
         }
     }
+    // Back/front panels project over the whole opening: outline them so the
+    // two selected joint partners remain visible without hiding the cells.
+    if let Some(pair) = pair {
+        for p in scene
+            .panels
+            .iter()
+            .filter(|p| p.normal == 1 && (p.id == pair.male || p.id == pair.female))
+        {
+            painter.rect_stroke(
+                rect(p.origin, p.size),
+                0.0,
+                egui::Stroke::new(3.0_f32, egui::Color32::LIGHT_BLUE),
+            );
+        }
+    }
     for p in scene.panels.iter().filter(|p| p.normal != 1) {
         let r = rect(p.origin, p.size);
         painter.rect_filled(
             r,
             0.0,
-            if p.id == *selected {
+            if pair.is_some_and(|l| l.male == p.id || l.female == p.id) || p.id == *selected {
                 egui::Color32::LIGHT_BLUE
             } else {
                 egui::Color32::from_rgb(189, 157, 109)

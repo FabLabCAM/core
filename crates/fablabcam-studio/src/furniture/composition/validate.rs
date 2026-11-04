@@ -15,6 +15,18 @@ pub(super) fn check(c: &Composition) -> Result<(), String> {
     for (id, name) in &c.panel_names {
         identity(id, name)?;
     }
+    for (id, t) in &c.panel_thickness {
+        if !["C1", "C2", "SUP", "INF", "DOS"].contains(&id.as_str()) {
+            return Err(format!("Épaisseur d’un panneau inconnu : {id}"));
+        }
+        thickness(*t)?;
+    }
+    Ok(())
+}
+fn thickness(t: f64) -> Result<(), String> {
+    if !t.is_finite() || !(3.0..=200.0).contains(&t) {
+        return Err("Épaisseur de panneau hors limites : 3 à 200 mm".into());
+    }
     Ok(())
 }
 fn insert(id: &str, name: &str, ids: &mut HashSet<String>) -> Result<(), String> {
@@ -52,6 +64,14 @@ fn visit(c: &Cell, depth: usize, ids: &mut HashSet<String>) -> Result<(), String
         }
         for p in &d.dividers {
             insert(&p.id, &p.name, ids)?;
+            if let Some(t) = p.thickness {
+                thickness(t)?;
+            }
+            if p.depth
+                .is_some_and(|v| !v.is_finite() || !(0.01..=100_000.0).contains(&v))
+            {
+                return Err(format!("{} : profondeur invalide", p.name));
+            }
             if !p.offset.is_finite() || p.offset < 0.0 {
                 return Err(format!("{} : position invalide", p.name));
             }

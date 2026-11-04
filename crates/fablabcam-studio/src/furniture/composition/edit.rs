@@ -27,6 +27,8 @@ impl Cell {
                         }
                     ),
                     offset: 0.0,
+                    thickness: None,
+                    depth: None,
                 })
                 .collect(),
             children: (1..=count)
@@ -40,23 +42,36 @@ impl Cell {
         self.division = None;
         self.bin = None;
     }
-    pub fn copy_contents_from(&mut self, source: &Self) {
+    pub fn copy_contents_from(&mut self, source: &Self) -> BTreeMap<String, String> {
         let mut copy = source.clone();
-        copy.renew_ids();
+        let mut ids = BTreeMap::new();
+        copy.renew_ids(&mut ids);
         self.division = copy.division;
         self.bin = copy.bin;
+        ids
     }
-    fn renew_ids(&mut self) {
-        self.id = new_id();
+    fn renew_ids(&mut self, ids: &mut BTreeMap<String, String>) {
+        let mut renew = |id: &mut String| {
+            let next = new_id();
+            ids.insert(id.clone(), next.clone());
+            *id = next;
+        };
+        renew(&mut self.id);
         if let Some(b) = &mut self.bin {
-            b.id = new_id();
+            let old = b.id.clone();
+            renew(&mut b.id);
+            for suffix in ["L", "R", "B", "F", "A"] {
+                ids.insert(format!("{old}-{suffix}"), format!("{}-{suffix}", b.id));
+            }
         }
         if let Some(d) = &mut self.division {
             for p in &mut d.dividers {
-                p.id = new_id();
+                let next = new_id();
+                ids.insert(p.id.clone(), next.clone());
+                p.id = next;
             }
             for c in &mut d.children {
-                c.renew_ids();
+                c.renew_ids(ids);
             }
         }
     }
@@ -66,9 +81,20 @@ impl Division {
         if self.mode == PositionMode::Fixed {
             return self.dividers.iter().map(|p| p.offset).collect();
         }
-        let gap = (length - self.dividers.len() as f64 * thickness) / self.children.len() as f64;
-        (1..=self.dividers.len())
-            .map(|i| i as f64 * gap + (i - 1) as f64 * thickness)
+        let total: f64 = self
+            .dividers
+            .iter()
+            .map(|p| p.thickness.unwrap_or(thickness))
+            .sum();
+        let gap = (length - total) / self.children.len() as f64;
+        let mut start = 0.0;
+        self.dividers
+            .iter()
+            .map(|p| {
+                let offset = start + gap;
+                start = offset + p.thickness.unwrap_or(thickness);
+                offset
+            })
             .collect()
     }
     pub fn fix_positions(&mut self, length: f64, thickness: f64) {
@@ -88,8 +114,10 @@ impl Division {
             return Err("Division pleine ou élément inconnu".into());
         }
         self.fix_positions(length, thickness);
-        let left = self.dividers[index].offset + thickness;
+        let left =
+            self.dividers[index].offset + self.dividers[index].thickness.unwrap_or(thickness);
         let right = self.dividers.get(index + 1).map_or(length, |p| p.offset);
+        let thickness = self.dividers[index].thickness.unwrap_or(thickness);
         if right - left <= thickness {
             return Err("Pas assez de place pour dupliquer la séparation".into());
         }

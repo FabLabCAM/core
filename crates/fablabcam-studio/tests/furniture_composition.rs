@@ -39,7 +39,7 @@ fn legacy_conversion_keeps_coordinates_and_labels() {
     let t = Template::cabinet();
     let mut d = t.defaults.clone();
     let original = panels(&t, &d).unwrap();
-    d.composition = Some(Box::new(Composition::from_dimensions(&d)));
+    d.composition = Some(Box::new(Composition::from_dimensions(&d).unwrap()));
     assert_eq!(original, panels(&t, &d).unwrap());
 }
 #[test]

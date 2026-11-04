@@ -1,6 +1,9 @@
 //! A partition tree owns each shared panel exactly once. IDs survive resizing.
+mod clipboard;
 mod edit;
+pub use clipboard::CellClipboard;
 mod resolve;
+mod shell;
 mod validate;
 
 use super::{new_id, Dimensions, JointSettings};
@@ -37,6 +40,10 @@ pub struct Divider {
     pub name: String,
     /// Lower edge measured from the containing cell's lower/left inner edge.
     pub offset: f64,
+    #[serde(default)]
+    pub thickness: Option<f64>,
+    #[serde(default)]
+    pub depth: Option<f64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -57,6 +64,8 @@ pub struct Bin {
     pub side_gap: f64,
     pub top_gap: f64,
     pub back_gap: f64,
+    #[serde(default)]
+    pub bottom_covers_sides: bool,
 }
 impl Default for Bin {
     fn default() -> Self {
@@ -68,6 +77,7 @@ impl Default for Bin {
             side_gap: 2.0,
             top_gap: 3.0,
             back_gap: 2.0,
+            bottom_covers_sides: false,
         }
     }
 }
@@ -126,13 +136,21 @@ pub struct Composition {
     pub joints: BTreeMap<String, JointSettings>,
     /// Optional user names for shell panels, identified by stable legacy IDs.
     pub panel_names: BTreeMap<String, String>,
+    #[serde(default)]
+    pub panel_thickness: BTreeMap<String, f64>,
+    #[serde(default)]
+    pub top_covers_sides: bool,
+    #[serde(default)]
+    pub bottom_covers_sides: bool,
 }
 impl Composition {
-    pub fn from_dimensions(d: &Dimensions) -> Self {
+    pub fn from_dimensions(d: &Dimensions) -> Result<Self, String> {
+        if d.shelves > 100 {
+            return Err("Nombre de tablettes hors limites (100 maximum)".into());
+        }
         let mut root = Cell::empty("Intérieur du meuble");
         if d.shelves > 0 {
-            root.divide(Axis::Horizontal, d.shelves as usize + 1)
-                .expect("bounded legacy shelves");
+            root.divide(Axis::Horizontal, d.shelves as usize + 1)?;
             for (i, divider) in root
                 .division
                 .as_mut()
@@ -144,12 +162,15 @@ impl Composition {
                 divider.id = format!("T{:02}", i + 1);
             }
         }
-        Self {
+        Ok(Self {
             root,
             joint_default: JointSettings::default(),
             joints: BTreeMap::new(),
             panel_names: BTreeMap::new(),
-        }
+            panel_thickness: BTreeMap::new(),
+            top_covers_sides: false,
+            bottom_covers_sides: false,
+        })
     }
     pub fn grid(columns: usize, rows: usize) -> Result<Self, String> {
         let mut root = Cell::empty("Grille de rangement");
@@ -161,12 +182,17 @@ impl Composition {
         } else {
             root.divide(Axis::Vertical, columns)?;
         }
-        Ok(Self {
+        let c = Self {
             root,
             joint_default: JointSettings::default(),
             joints: BTreeMap::new(),
             panel_names: BTreeMap::new(),
-        })
+            panel_thickness: BTreeMap::new(),
+            top_covers_sides: false,
+            bottom_covers_sides: false,
+        };
+        c.check()?;
+        Ok(c)
     }
     pub fn check(&self) -> Result<(), String> {
         validate::check(self)

@@ -2,7 +2,7 @@ use fablabcam_studio::furniture::*;
 fn model() -> (Template, Dimensions) {
     let t = Template::cabinet();
     let mut d = t.defaults.clone();
-    d.composition = Some(Box::new(Composition::from_dimensions(&d)));
+    d.composition = Some(Box::new(Composition::from_dimensions(&d).unwrap()));
     (t, d)
 }
 fn select(d: &mut Dimensions, male: &str, female: &str, settings: JointSettings) -> Connection {

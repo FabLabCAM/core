@@ -66,6 +66,48 @@ pub(super) fn relieved(
     }
     Ok(slot)
 }
+/// Clear the concave shoulders left by a round cutter around a protruding tab.
+pub(super) fn shoulders(
+    outline: &Contour,
+    axis: usize,
+    end: f64,
+    span: [f64; 2],
+    direction: f64,
+    radius: f64,
+    relief: CornerRelief,
+) -> Result<Contour, String> {
+    let mut result = outline.clone();
+    if relief == CornerRelief::None {
+        return Ok(result);
+    }
+    for (edge, sign) in [(span[0], -1.0), (span[1], 1.0)] {
+        let mut center = [0.0; 2];
+        let diagonal = if relief == CornerRelief::Dogbone {
+            radius / 2.0_f64.sqrt()
+        } else {
+            radius
+        };
+        center[axis] = end + direction * diagonal;
+        center[1 - axis] = edge
+            + if relief == CornerRelief::Dogbone {
+                sign * diagonal
+            } else {
+                0.0
+            };
+        let circle = crate::shape::circle((center[0], center[1]), radius)
+            .map_err(|e| e.to_string())?
+            .to_pline()
+            .ok_or("Cercle invalide")?;
+        let cut = geom::difference(&pline(&result), &circle);
+        if cut.outlines.len() != 1 || !cut.holes.is_empty() {
+            return Err(
+                "Dégagement trop grand : augmenter la largeur du tenon ou réduire la fraise".into(),
+            );
+        }
+        result = contour(&cut.outlines[0]);
+    }
+    Ok(result)
+}
 pub(super) fn finish(p: &mut Panel) -> Result<(), String> {
     let mut bounds = pline(&p.outline)
         .extents()

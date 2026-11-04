@@ -9,10 +9,11 @@ pub(super) struct ComposerUi {
     columns: usize,
     rows: usize,
     count: usize,
-    clipboard: Option<Cell>,
+    clipboard: Option<CellClipboard>,
     delete: Option<String>,
     joint: String,
     show_joints: bool,
+    last_scene: Option<Structure>,
     pub message: String,
 }
 impl Default for ComposerUi {
@@ -26,6 +27,7 @@ impl Default for ComposerUi {
             delete: None,
             joint: String::new(),
             show_joints: false,
+            last_scene: None,
             message: String::new(),
         }
     }
@@ -37,12 +39,14 @@ impl ComposerUi {
         if d.composition.is_none() {
             ui.label("Convertir les tablettes actuelles en éléments modifiables. Les dimensions et les repères sont conservés.");
             if ui.button("Activer la composition").clicked() {
-                d.composition = Some(Box::new(Composition::from_dimensions(d)));
+                match Composition::from_dimensions(d) {
+                    Ok(c) => d.composition = Some(Box::new(c)),
+                    Err(e) => self.message = e,
+                };
             }
             return;
         }
         let mut resolved = d.clone();
-        let previous_composition = d.composition.clone();
         let composition = d.composition.as_mut().unwrap();
         if self.selected.is_empty() {
             self.selected = composition.root.id.clone();
@@ -94,9 +98,23 @@ impl ComposerUi {
             });
         }
         resolved.composition = Some(composition.clone());
-        let scene = structure(&resolved);
-        match &scene {
+        let result = structure(&resolved);
+        let error = result.as_ref().err().cloned();
+        let scene = match result {
             Ok(scene) => {
+                self.last_scene = Some(scene.clone());
+                Some(scene)
+            }
+            Err(_) => self
+                .last_scene
+                .clone()
+                .filter(|s| s.cells.first().is_some_and(|b| b.id == composition.root.id)),
+        };
+        // Keep the same controls/focus while typing temporarily invalid numbers.
+        // Moving to a different recovery form midway through "200" would lose
+        // focus at "2" and prevent users from completing the value.
+        match &scene {
+            Some(scene) => {
                 ui.columns(3, |cols| {
                     cols[0].strong("Éléments du meuble");
                     egui::ScrollArea::vertical()
@@ -111,37 +129,34 @@ impl ComposerUi {
                             tree(ui, &composition.root, &mut self.selected, 0);
                         });
                     cols[1].strong("Vue de face — cliquez une case");
-                    drawing::face(&mut cols[1], scene, &mut self.selected, d.width, d.height);
+                    let pair = connections(&scene.panels)
+                        .into_iter()
+                        .find(|l| self.show_joints && l.id == self.joint);
+                    drawing::face(
+                        &mut cols[1],
+                        scene,
+                        &mut self.selected,
+                        d.width,
+                        d.height,
+                        pair.as_ref(),
+                    );
                     if self.show_joints {
                         self.joints(&mut cols[2], composition, scene, cutter);
                     } else {
-                        self.properties(&mut cols[2], composition, scene, d.thickness);
+                        self.properties(&mut cols[2], composition, scene, &resolved, cutter);
                     }
                 });
             }
-            Err(e) => {
-                ui.colored_label(egui::Color32::LIGHT_RED, e);
-                self.recovery(ui, composition);
-            }
+            None => self.recovery(ui, composition, &resolved),
+        }
+        if let Some(e) = error {
+            ui.colored_label(
+                egui::Color32::LIGHT_RED,
+                format!("{e} — aperçu précédent conservé pendant la saisie."),
+            );
         }
         if !self.message.is_empty() {
             ui.colored_label(egui::Color32::LIGHT_BLUE, &self.message);
-        }
-        // Only an explicit edit may discard overrides for elements it removed.
-        if d.composition != previous_composition {
-            if let Ok(scene) = structure(d) {
-                let links = connections(&scene.panels);
-                d.composition
-                    .as_mut()
-                    .unwrap()
-                    .joints
-                    .retain(|id, _| links.iter().any(|l| &l.id == id));
-                d.composition
-                    .as_mut()
-                    .unwrap()
-                    .panel_names
-                    .retain(|id, _| id == "DOS" || scene.panels.iter().any(|p| &p.id == id));
-            }
         }
         match panels_with_cutter(&template, d, cutter) {
             Ok(parts) => {
@@ -158,9 +173,37 @@ impl ComposerUi {
             }
         }
     }
-    fn recovery(&mut self, ui: &mut egui::Ui, c: &mut Composition) {
+    fn recovery(&mut self, ui: &mut egui::Ui, c: &mut Composition, dimensions: &Dimensions) {
         ui.label("Corrigez les dimensions globales ou les propriétés ci-dessous.");
         tree(ui, &c.root, &mut self.selected, 0);
+        if let Some(parent) = properties::parent(&c.root, &self.selected) {
+            let id = parent.id.clone();
+            let division = c.root.find_mut(&id).unwrap().division.as_mut().unwrap();
+            let p = division
+                .dividers
+                .iter_mut()
+                .find(|p| p.id == self.selected)
+                .unwrap();
+            properties::number(ui, "Position", &mut p.offset);
+            properties::optional_number(
+                ui,
+                "Épaisseur propre",
+                &mut p.thickness,
+                dimensions.thickness,
+            );
+            properties::optional_number(ui, "Profondeur propre", &mut p.depth, dimensions.depth);
+            ui.selectable_value(
+                &mut division.mode,
+                PositionMode::Equal,
+                "Répartition régulière",
+            );
+        }
+        if let Some(t) = c.panel_thickness.get_mut(&self.selected) {
+            properties::number(ui, "Épaisseur du panneau", t);
+            if ui.button("Revenir à l’épaisseur globale").clicked() {
+                c.panel_thickness.remove(&self.selected);
+            }
+        }
         if let Some(cell) = c.root.find_mut(&self.selected) {
             if let Some(d) = &mut cell.division {
                 for divider in &mut d.dividers {

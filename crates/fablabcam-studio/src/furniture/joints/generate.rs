@@ -1,5 +1,5 @@
 use super::*;
-use contours::{contour, finish, pline, rectangle, relieved, union};
+use contours::{contour, finish, pline, rectangle, relieved, shoulders, union};
 use fablabcam_geom as geom;
 
 pub(crate) fn machine(parts: &mut [Panel], d: &Dimensions, cutter: f64) -> Result<(), String> {
@@ -100,6 +100,17 @@ fn joint(
         a[transverse] = span[0] - m.origin[l.span_axis];
         b[transverse] = span[1] - m.origin[l.span_axis];
         m.outline = union(&m.outline, &rectangle(a, b))?;
+        if !continuous {
+            m.outline = shoulders(
+                &m.outline,
+                axis,
+                end,
+                [a[transverse], b[transverse]],
+                dir,
+                cutter / 2.0,
+                s.relief,
+            )?;
+        }
         let shrink = if s.kind == JointKind::TongueGroove {
             (m.thickness - tongue) / 2.0
         } else {
@@ -130,6 +141,12 @@ fn joint(
         if reduced {
             // Relief pockets on the tongue itself preserve its assembled location.
             // The broad-face setup is explicit; back pockets require a separate setup.
+            // Run the cutter beyond all free edges. A tight closed pocket would
+            // leave rounded corners and fail for engagement shorter than the tool.
+            a[axis] = end.min(end + dir * (depth + cutter));
+            b[axis] = end.max(end + dir * (depth + cutter));
+            a[transverse] -= cutter;
+            b[transverse] += cutter;
             let cut = rectangle(a, b);
             if s.kind == JointKind::TongueGroove {
                 feature(m, l, cut.clone(), shrink, MachiningFace::Front, false)?;
@@ -149,6 +166,9 @@ fn ranges(
 ) -> Result<Vec<[f64; 2]>, String> {
     let len = l.span[1] - l.span[0];
     if continuous {
+        if len + s.clearance < cutter {
+            return Err("Portée de rainure trop courte pour le diamètre de fraise".into());
+        }
         return Ok(vec![l.span]);
     }
     let count = s.count as usize;

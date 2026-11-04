@@ -65,7 +65,11 @@ impl FurnitureUi {
                     "Projet de meuble autonome"
                 });
                 ui.label(format!(
-                    "Format 1 · modèle révision {}",
+                    "Format {} · modèle révision {}",
+                    match doc {
+                        Document::Furniture(f) => f.schema_version,
+                        Document::Template(t) => t.schema_version,
+                    },
                     doc.template().revision
                 ));
                 let d = doc.dimensions();

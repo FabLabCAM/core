@@ -122,7 +122,9 @@ pub(super) fn assembly(
         }
     }
     // Labels are overlaid after all faces, so a later panel cannot cover a repère.
-    if height > 180.0 {
+    // Large grids are identified through the tree and cut list; labels on every
+    // bin panel would obscure the assembled preview entirely.
+    if height > 180.0 && parts.len() <= 24 {
         for p in &parts {
             let o = p.origin;
             let s = p.size;

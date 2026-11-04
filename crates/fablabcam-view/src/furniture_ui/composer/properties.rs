@@ -5,12 +5,25 @@ impl ComposerUi {
         ui: &mut egui::Ui,
         c: &mut Composition,
         scene: &Structure,
-        t: f64,
+        dimensions: &Dimensions,
+        cutter: f64,
     ) {
+        let t = dimensions.thickness;
+        let mut paste = None;
+        let mut copy = false;
         ui.strong("Propriétés et actions");
         if let Some(cell) = c.root.find_mut(&self.selected) {
             ui.text_edit_singleline(&mut cell.name);
-            let bounds = scene.cells.iter().find(|x| x.id == cell.id).unwrap();
+            let Some(bounds) = scene.cells.iter().find(|x| x.id == cell.id) else {
+                ui.label("Case à recalculer ; corrigez ses dimensions ou retirez son contenu.");
+                if let Some(bin) = &mut cell.bin {
+                    bin_fields(ui, bin);
+                }
+                if ui.button("Retirer le contenu…").clicked() {
+                    self.delete = Some(cell.id.clone());
+                }
+                return;
+            };
             ui.label(format!(
                 "Utile : {:.1} × {:.1} × {:.1} mm",
                 bounds.size[0], bounds.size[1], bounds.size[2]
@@ -39,10 +52,10 @@ impl ComposerUi {
                         ..Bin::default()
                     });
                 }
-                if let Some(source) = &self.clipboard {
-                    if ui.button("Coller une copie dans cette case").clicked() {
-                        cell.copy_contents_from(source);
-                    }
+                if self.clipboard.is_some()
+                    && ui.button("Coller une copie dans cette case").clicked()
+                {
+                    paste = Some(cell.id.clone());
                 }
             }
             if let Some(division) = &mut cell.division {
@@ -65,7 +78,7 @@ impl ComposerUi {
                 });
             }
             if ui.button("Copier le contenu").clicked() {
-                self.clipboard = Some(cell.clone());
+                copy = true;
                 self.message =
                     "Sélectionnez une case vide puis collez une copie indépendante.".into();
             }
@@ -79,24 +92,40 @@ impl ComposerUi {
             if ui.button("Supprimer le contenu…").clicked() {
                 self.delete = Some(cell.id.clone());
             }
-            if let Some(bin) = repeat {
+            let source_id = cell.id.clone();
+            if copy || repeat.is_some() {
+                match CellClipboard::capture(dimensions, c, &source_id) {
+                    Ok(clipboard) => self.clipboard = Some(clipboard),
+                    Err(e) => {
+                        self.message = e;
+                        return;
+                    }
+                }
+            }
+            if let Some(target) = paste {
+                if let Some(clipboard) = &self.clipboard {
+                    if let Err(e) = clipboard.paste(dimensions, c, &target, cutter) {
+                        self.message = e;
+                    }
+                }
+            }
+            if repeat.is_some() {
                 let mut count = 0;
-                for b in scene.cells.iter().filter(|b| b.leaf) {
-                    if b.size[0] > 2.0 * (bin.thickness + bin.side_gap)
-                        && b.size[2] > bin.top_gap + bin.thickness
-                        && b.size[1] >= bin.depth + bin.back_gap
-                    {
-                        if let Some(target) = c.root.find_mut(&b.id).filter(|c| c.bin.is_none()) {
-                            let mut next = bin.clone();
-                            next.id = new_id();
-                            target.bin = Some(next);
+                if let Some(clipboard) = &self.clipboard {
+                    for b in scene.cells.iter().filter(|b| b.leaf) {
+                        if clipboard.paste(dimensions, c, &b.id, cutter).is_ok() {
                             count += 1;
                         }
                     }
                 }
-                self.message = format!(
-                    "{count} bacs ajoutés ; les cases occupées ou incompatibles sont conservées."
-                );
+                self.message = format!("{count} bacs ajoutés avec leurs assemblages ; les cases occupées ou incompatibles sont conservées.");
+            }
+            if source_id == c.root.id {
+                ui.separator();
+                ui.strong("Orientation des angles du caisson");
+                ui.checkbox(&mut c.top_covers_sides, "Dessus continu sur les côtés");
+                ui.checkbox(&mut c.bottom_covers_sides, "Dessous continu sous les côtés");
+                ui.weak("Le panneau continu reçoit les mortaises. Les dimensions extérieures sont conservées.");
             }
             return;
         }
@@ -116,6 +145,19 @@ impl ComposerUi {
                 .position(|p| p.id == self.selected)
                 .unwrap();
             ui.text_edit_singleline(&mut d.dividers[index].name);
+            optional_number(ui, "Épaisseur propre", &mut d.dividers[index].thickness, t);
+            optional_number(
+                ui,
+                "Profondeur propre",
+                &mut d.dividers[index].depth,
+                bounds.size[1],
+            );
+            if let Some(p) = scene.panels.iter().find(|p| p.id == self.selected) {
+                ui.label(format!(
+                    "Portée entre les limites de la case : {:.1} × {:.1} mm",
+                    p.width, p.height
+                ));
+            }
             if d.mode == PositionMode::Equal && ui.button("Modifier sa position").clicked() {
                 d.fix_positions(bounds.size[d.axis.coordinate()], t);
             }
@@ -133,13 +175,39 @@ impl ComposerUi {
             return;
         }
         if let Some(p) = scene.panels.iter().find(|p| p.id == self.selected) {
+            if p.assembly != "frame" {
+                ui.label(format!(
+                    "{} · {} × {} × {} mm",
+                    p.name, p.width, p.height, p.thickness
+                ));
+                if let Some(bin) = find_bin(&mut c.root, &p.assembly) {
+                    bin_fields(ui, bin);
+                }
+                return;
+            }
             let name = c
                 .panel_names
                 .entry(p.id.clone())
                 .or_insert_with(|| p.name.clone());
             ui.text_edit_singleline(name);
             ui.label(format!("{} × {} × {} mm", p.width, p.height, p.thickness));
-            ui.weak("Les panneaux du caisson suivent les dimensions extérieures. Le dos se règle dans les dimensions.");
+            let mut value = c.panel_thickness.get(&p.id).copied();
+            optional_number(ui, "Épaisseur propre", &mut value, t);
+            match value {
+                Some(v) => {
+                    c.panel_thickness.insert(p.id.clone(), v);
+                }
+                None => {
+                    c.panel_thickness.remove(&p.id);
+                }
+            }
+            if p.id == "SUP" {
+                ui.checkbox(&mut c.top_covers_sides, "Dessus continu sur les côtés");
+            }
+            if p.id == "INF" {
+                ui.checkbox(&mut c.bottom_covers_sides, "Dessous continu sous les côtés");
+            }
+            ui.weak("Largeur, hauteur et profondeur suivent les dimensions extérieures : ouvrez « Dimensions » pour les modifier. Les cases utiles sont recalculées selon chaque épaisseur.");
         }
     }
 }
@@ -151,6 +219,7 @@ pub(super) fn bin_fields(ui: &mut egui::Ui, b: &mut Bin) {
     ui.separator();
     ui.strong("Bac amovible");
     ui.text_edit_singleline(&mut b.name);
+    ui.checkbox(&mut b.bottom_covers_sides, "Fond continu sous les parois");
     for (label, value) in [
         ("Profondeur", &mut b.depth),
         ("Épaisseur", &mut b.thickness),
@@ -161,7 +230,7 @@ pub(super) fn bin_fields(ui: &mut egui::Ui, b: &mut Bin) {
         number(ui, label, value);
     }
 }
-fn parent<'a>(c: &'a Cell, id: &str) -> Option<&'a Cell> {
+pub(super) fn parent<'a>(c: &'a Cell, id: &str) -> Option<&'a Cell> {
     let d = c.division.as_ref()?;
     if d.dividers.iter().any(|p| p.id == id) {
         return Some(c);
@@ -188,4 +257,30 @@ pub(super) fn affected(c: &Cell, id: &str) -> usize {
     let d = p.division.as_ref().unwrap();
     let i = d.dividers.iter().position(|p| p.id == id).unwrap();
     1 + d.children[i].descendants() + d.children[i + 1].descendants() + 1
+}
+
+pub(super) fn optional_number(
+    ui: &mut egui::Ui,
+    label: &str,
+    value: &mut Option<f64>,
+    default: f64,
+) {
+    let mut custom = value.is_some();
+    if ui.checkbox(&mut custom, label).changed() {
+        *value = custom.then_some(default);
+    }
+    if let Some(v) = value {
+        number(ui, label, v);
+    }
+}
+
+fn find_bin<'a>(cell: &'a mut Cell, id: &str) -> Option<&'a mut Bin> {
+    if let Some(b) = &mut cell.bin {
+        return (b.id == id).then_some(b);
+    }
+    cell.division
+        .as_mut()?
+        .children
+        .iter_mut()
+        .find_map(|c| find_bin(c, id))
 }

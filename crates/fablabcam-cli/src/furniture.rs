@@ -101,7 +101,7 @@ pub fn run(args: &[String]) -> Result<String, String> {
                 if *value == "yes" {
                     if f.dimensions.composition.is_none() {
                         f.dimensions.composition = Some(Box::new(
-                            furniture::Composition::from_dimensions(&f.dimensions),
+                            furniture::Composition::from_dimensions(&f.dimensions)?,
                         ));
                     }
                     let scene = furniture::structure(&f.dimensions)?;
@@ -129,7 +129,10 @@ pub fn run(args: &[String]) -> Result<String, String> {
             Ok(format!(
                 "Document valide : {} · format {} · modèle r{}\n",
                 doc.name(),
-                furniture::SCHEMA_VERSION,
+                match &doc {
+                    Document::Template(t) => t.schema_version,
+                    Document::Furniture(f) => f.schema_version,
+                },
                 doc.template().revision
             ))
         }

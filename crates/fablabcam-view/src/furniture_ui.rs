@@ -173,7 +173,6 @@ impl FurnitureUi {
             }
             Pending::New(mut t) => {
                 t.id = fablabcam_studio::furniture::new_id();
-                t.name = "Mon modèle de meuble".into();
                 self.models = true;
                 self.draft = Some(Draft::new(Document::Template(t)));
             }

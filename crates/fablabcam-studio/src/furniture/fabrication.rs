@@ -220,7 +220,11 @@ pub fn fabrication_files(
         ));
         files.push((
             "assemblages.json".into(),
-            serde_json::to_vec_pretty(&job.dimensions.composition).map_err(|e| e.to_string())?,
+            serde_json::to_vec_pretty(&serde_json::json!({
+                "composition": job.dimensions.composition,
+                "connections": super::connections(&super::structure(&job.dimensions)?.panels),
+                "coordinate_system": "X largeur, Y profondeur, Z hauteur ; axes locaux par normale ; verso miroir X autour de Y"
+            })).map_err(|e| e.to_string())?,
         ));
     }
     if options.csv {
