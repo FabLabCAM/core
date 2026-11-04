@@ -91,7 +91,7 @@ fn finish(provider: Provider, request: ChatRequest, mode: Mode, text: String, en
     }
     if text.is_empty() && plan.is_none() {
         return Err(if provider == Provider::Ollama {
-            "Ollama a terminé sans texte ni appel d’outil exploitable. Vérifiez les capacités du modèle ; essayez un modèle plus grand pour ce catalogue. Aucun changement appliqué."
+            "Ollama a terminé sans texte ni appel d’outil exploitable. Vérifiez la taille du contexte Ollama (num_ctx) et les capacités d’outils du modèle. Aucun changement appliqué."
         } else {
             "Réponse vide du fournisseur"
         }.into());

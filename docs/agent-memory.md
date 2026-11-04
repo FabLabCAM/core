@@ -1,5 +1,32 @@
 # Mémoire de maintenance FabLabCAM
 
+## Correctif fournisseurs après 0.7.0 — issue #20
+
+- OpenAI : `capture_reasoning_content` dans genai 0.7.3 ajoute à la requête
+  `reasoning.summary=detailed`. Désactiver cette option pour GPT-4.1/GPT-4o ;
+  conserver la capture et les signatures chiffrées pour les modèles de raisonnement.
+- Ollama : `ReasoningEffort::Zero` émet `think:false`, température 0 en Plan/Agent.
+  Expliciter l’enveloppe `submit_plan` et distinguer le nom de fonction des types
+  d’actions : cela permet au petit modèle de proposer le caisson et son retour outil. Une réponse finale vide
+  reste une erreur, jamais un plan applicable. Ne pas reconstruire un appel depuis
+  du texte libre et ne pas relancer automatiquement une proposition modificative.
+- Ollama : le contexte serveur par défaut de 4096 tokens tronque la requête après
+  création du meuble (5381 → 2050 tokens observés). Les essais Qwen3 1.7B/4B et
+  Qwen2.5 3B avec ce réglage échouent à la division ; ne pas confondre cet échec
+  de configuration avec une limite intrinsèque des modèles.
+- genai 0.7.3 ignore `extra_body` pour Ollama : ne pas prétendre envoyer `num_ctx`
+  via cette option. Configurer un modèle dédié avec `PARAMETER num_ctx 16384` ;
+  le dialogue Connexion rappelle le prérequis. Voir le guide pour le Modelfile.
+- Après correction du contexte à 16384, Qwen2.5 3B renvoie encore une réponse vide
+  à la division et Qwen3 1.7B une réponse sans plan. Le caisson/retour outil passe,
+  mais aucun de ces petits modèles n’est qualifié pour le parcours Agent complet.
+  Qwen3 écrit `divide_cell` comme fonction au lieu de `submit_plan`. Lister toutes
+  les actions dans la consigne a fait régresser le caisson : essai retiré.
+- Essais réels du correctif : GPT-4.1 mini, GPT-5 mini et Claude Haiku 4.5
+  passent le parcours caisson/case/Plan/Agent/Rhai/outils/simulation/retour outil.
+- Voir [qualification complémentaire](qa/provider-compatibility.md). Ces correctifs
+  ne sont pas inclus dans les paquets 0.7.0 déjà publiés.
+
 ## Version 0.7.0 : assistant natif, issue #20
 
 - Architecture et contrats : [ADR 0005](adr/0005-assistant.md), [assistant](assistant.md),
@@ -21,7 +48,8 @@
   officiel. `.env` développeur ignoré, jamais chargé automatiquement par le Studio.
 - Mistral `mistral-small-latest` testé réellement : caisson 7 panneaux, séparation
   8 panneaux, édition/exécution Rhai, outillage, simulation partielle, retour outil.
-  Les trois autres services ont seulement des tests de protocole locaux à ce stade.
+  À la livraison 0.7.0, les trois autres services avaient seulement des tests de
+  protocole locaux ; voir la qualification complémentaire ci-dessus pour les essais ultérieurs.
   Conserver #20 ouverte jusqu’à qualification réelle et compléter la QA.
 - Rhai : arrêt coopératif, pas de quota global de mémoire ni préemption des appels
   natifs. Aucun shell, réseau arbitraire ou accès machine offert au modèle.

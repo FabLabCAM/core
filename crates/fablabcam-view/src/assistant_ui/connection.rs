@@ -24,6 +24,7 @@ impl AssistantUi {
                 ui.small("Seul ce fournisseur reçoit les éléments cochés. Aucun repli automatique vers un autre service.");
                 if c.provider == Provider::Ollama {
                     ui.small("Ollama doit être démarré et le modèle déjà installé. HTTP est permis sur votre réseau local.");
+                    ui.small("Configurez num_ctx à 16384 ou davantage dans le modèle Ollama pour conserver le catalogue et le contexte du projet. Les longues conversations peuvent demander plus de mémoire.");
                 }
                 ui.label("Clé API pour cette session");
                 ui.add(

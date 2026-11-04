@@ -1,5 +1,16 @@
 # Notes de version
 
+## Non publié — compatibilité des fournisseurs (#20)
+
+- GPT-4.1 et GPT-4o : ne plus demander `reasoning.summary`, non pris en charge.
+  Les métadonnées de raisonnement de GPT-5 restent conservées pour le retour outil.
+- Ollama : préciser le format natif `submit_plan` et ses actions imbriquées ;
+  réduire l’aléa en Plan/Agent et demander `think: false` pour réserver le budget aux réponses et aux
+  arguments d’outils ; diagnostic explicite en cas de réponse terminée vide.
+  Documenter le contexte Ollama à 16384 tokens pour éviter la troncature observée.
+- Tests de protocole des options et du refus des réponses vides ; qualifications
+  réelles complémentaires détaillées dans `docs/qa/provider-compatibility.md`.
+
 ## 0.7.0 — 2026-11-04
 
 ### Assistant natif — [#20](https://github.com/FabLabCAM/core/issues/20)
