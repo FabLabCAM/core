@@ -1,5 +1,33 @@
 # Mémoire de maintenance FabLabCAM
 
+## Version 0.7.0 : assistant natif, issue #20
+
+- Architecture et contrats : [ADR 0005](adr/0005-assistant.md), [assistant](assistant.md),
+  [QA](qa/0.7.0.md). Domaines dans `fablabcam-studio::assistant`, egui dans
+  `fablabcam-view::assistant_ui`. Conserver les sept crates et les moteurs métier.
+- Ask interdit les outils modificatifs ; Plan prépare sans appliquer ni exécuter
+  Rhai ; Agent demande une validation par lot. Export séparé, destination native.
+- Ne jamais appliquer un résultat obsolète : empreintes document/révision/contenu,
+  page/sélection/filtres et identité fournisseur/modèle. Éditer un plan invalide
+  son aperçu. Un lot dessin/script/meuble possède une annulation commune.
+- QA UI : distinguer longueur totale/simulée ; comparer aussi le plan affiché
+  au plan préparé avant installation. Interdire son édition pendant le worker.
+- `PreparedProject` associe projet et caches calculés hors rendu ; ne pas les
+  désynchroniser. Le runner Rhai manuel partage les limites et tourne en worker.
+- Adaptateurs genai explicitement fixés ; continuer avec le protocole natif de
+  résultat d’outil, y compris ses métadonnées de raisonnement non affichées.
+  Ne pas déduire le fournisseur du nom de modèle ni rejouer un lot automatiquement.
+- Historique sans clé ; coffre lié à l’endpoint ; variable seulement pour endpoint
+  officiel. `.env` développeur ignoré, jamais chargé automatiquement par le Studio.
+- Mistral `mistral-small-latest` testé réellement : caisson 7 panneaux, séparation
+  8 panneaux, édition/exécution Rhai, outillage, simulation partielle, retour outil.
+  Les trois autres services ont seulement des tests de protocole locaux à ce stade.
+  Conserver #20 ouverte jusqu’à qualification réelle et compléter la QA.
+- Rhai : arrêt coopératif, pas de quota global de mémoire ni préemption des appels
+  natifs. Aucun shell, réseau arbitraire ou accès machine offert au modèle.
+- TODO(agent) : renforcer la qualification des services réels et l’isolation des
+  calculs lourds ; maintenir les fixtures SSE/NDJSON quand les API évoluent.
+
 ## Version 0.6.1 : validation des identifiants Rhai, issue #19
 
 - Correction commune CLI/Studio dans `script::ids` : convertir les entiers par

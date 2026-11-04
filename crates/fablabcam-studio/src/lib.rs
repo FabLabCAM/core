@@ -4,6 +4,7 @@
 //! L'interface egui et la page web ne font qu'afficher et déclencher ces fonctions.
 
 pub mod gcode_store;
+pub mod assistant;
 pub mod furniture;
 pub mod machine_profiles;
 pub mod cad;

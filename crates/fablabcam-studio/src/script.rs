@@ -82,13 +82,38 @@ fn edit<T>(e: Result<T, EditError>) -> Res<T> {
 /// Exécute `script` sur une copie de `project`. Au-delà de `max_ops` opérations élémentaires, le script est
 /// arrêté (boucle infinie).
 pub fn run(project: &Project, script: &str) -> Result<ScriptOutput, String> {
+    run_controlled(project, script, std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)))
+}
+
+/// Compile only: never executes a generated script while editing its text.
+pub fn validate(script: &str) -> Result<(), String> {
+    if script.len() > 64_000 { return Err("Script limité à 64 Ko".into()); }
+    Engine::new().compile(script).map(|_| ()).map_err(|e| format!("script : {e}"))
+}
+
+/// Bounded, cancellable execution shared by the assistant and ordinary script runner.
+pub fn run_controlled(project: &Project, script: &str,
+    cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>) -> Result<ScriptOutput, String> {
+    validate(script)?;
     let st = Rc::new(RefCell::new(State { project: project.clone(), layer: "0".into(), log: Vec::new() }));
     let mut engine = Engine::new();
+    engine.set_module_resolver(rhai::module_resolvers::DummyModuleResolver::new());
     engine.set_max_operations(5_000_000);
     engine.set_max_expr_depths(64, 64);
+    engine.set_max_string_size(64_000);
+    engine.set_max_array_size(10_000);
+    engine.set_max_map_size(1000);
+    engine.set_max_call_levels(32);
+    engine.set_max_variables(256);
+    engine.set_max_modules(0);
+    let started=std::time::Instant::now();
+    engine.on_progress(move |_| {
+        (cancelled.load(std::sync::atomic::Ordering::Relaxed) || started.elapsed().as_secs() >= 10)
+            .then(|| Dynamic::from("script arrêté ou délai de 10 secondes dépassé"))
+    });
     {
         let s = st.clone();
-        engine.on_print(move |t| s.borrow_mut().log.push(t.to_string()));
+        engine.on_print(move |t| { if s.borrow().log.len()<1000 {s.borrow_mut().log.push(t.chars().take(1000).collect());} });
     }
     macro_rules! with {
         ($s:ident, $body:expr) => {{
@@ -99,6 +124,7 @@ pub fn run(project: &Project, script: &str) -> Result<ScriptOutput, String> {
     let add = |s: &Rc<RefCell<State>>, e: Result<Entity, EditError>| -> Res<i64> {
         let e = edit(e)?;
         let mut b = s.borrow_mut();
+        if b.project.shapes.len()>=10_000 {return err("script limité à 10 000 formes");}
         let layer = b.layer.clone();
         edit(b.project.add_shape(&layer, e)).map(|i| i as i64)
     };
@@ -118,6 +144,7 @@ pub fn run(project: &Project, script: &str) -> Result<ScriptOutput, String> {
         add(&s, shape::polyline(&v?, closed))
     }));
     with!(s, engine.register_fn("text", move |t: &str, x: Dynamic, y: Dynamic, h: Dynamic| -> Res<Array> {
+        if t.chars().count()>1000 {return err("texte limité à 1000 caractères par appel");}
         let font = crate::text::default_font().map_or_else(|| err("aucune police système trouvée"), Ok)?;
         let data = std::fs::read(font).or_else(|e| err(format!("{font} : {e}")))?;
         let style = crate::text::TextStyle { height: num(&h)?, ..Default::default() };
@@ -138,9 +165,16 @@ pub fn run(project: &Project, script: &str) -> Result<ScriptOutput, String> {
         edit(s.borrow_mut().project.transform_shapes(&ids(&i)?, &t))
     }));
     with!(s, engine.register_fn("copy", move |i: Dynamic, dx: Dynamic, dy: Dynamic| -> Res<Array> {
-        edit(s.borrow_mut().project.copy_shapes(&ids(&i)?, &Similarity::translation(num(&dx)?, num(&dy)?))).map(to_array)
+        let selected=ids(&i)?;
+        if s.borrow().project.shapes.len()+selected.len()>10_000 {return err("script limité à 10 000 formes");}
+        edit(s.borrow_mut().project.copy_shapes(&selected, &Similarity::translation(num(&dx)?, num(&dy)?))).map(to_array)
     }));
-    with!(s, engine.register_fn("offset", move |i: Dynamic, d: Dynamic| -> Res<Array> { edit(s.borrow_mut().project.offset_shapes(&ids(&i)?, num(&d)?)).map(to_array) }));
+    with!(s, engine.register_fn("offset", move |i: Dynamic, d: Dynamic| -> Res<Array> {
+        let mut b=s.borrow_mut();
+        let out=edit(b.project.offset_shapes(&ids(&i)?, num(&d)?))?;
+        if b.project.shapes.len()>10_000 {return err("script limité à 10 000 formes");}
+        Ok(to_array(out))
+    }));
     with!(s, engine.register_fn("delete", move |i: Dynamic| -> Res<()> {
         let v = ids(&i)?;
         let mut b = s.borrow_mut();
@@ -151,7 +185,7 @@ pub fn run(project: &Project, script: &str) -> Result<ScriptOutput, String> {
         Ok(())
     }));
     for (name, kind) in [("tool", ToolKind::EndMill), ("drill_tool", ToolKind::Drill)] {
-        with!(s, engine.register_fn(name, move |n: &str, d: Dynamic| -> Res<()> { edit(s.borrow_mut().project.add_tool(Tool::new(n, kind, num(&d)?))) }));
+        with!(s, engine.register_fn(name, move |n: &str, d: Dynamic| -> Res<()> { if s.borrow().project.tools.len()>=1000 {return err("script limité à 1000 outils");} edit(s.borrow_mut().project.add_tool(Tool::new(n, kind, num(&d)?))) }));
     }
     for (name, kind) in [("profile", OpKind::Profile), ("pocket", OpKind::Pocket), ("drill", OpKind::Drill), ("engrave", OpKind::Engrave)] {
         with!(s, engine.register_fn(name, move |n: &str, i: Dynamic, tool: &str, depth: Dynamic| -> Res<i64> {
@@ -160,12 +194,14 @@ pub fn run(project: &Project, script: &str) -> Result<ScriptOutput, String> {
             if b.project.tool(tool).is_none() {
                 return err(EditError::UnknownTool(tool.into()));
             }
+            if b.project.ops.len()>=200 {return err("script limité à 200 opérations");}
             let id = edit(b.project.add_operation(kind, n, v, tool))?;
             edit(b.project.update_operation(id, |o| o.depth = depth))?;
             Ok(id as i64)
         }));
     }
     engine.run(script).map_err(|e| format!("script : {e}"))?;
+    if st.borrow().project.shapes.len()>10_000 {return Err("script limité à 10 000 formes".into());}
     drop(engine);
     let st = Rc::try_unwrap(st).map_err(|_| "état du script encore utilisé".to_string())?.into_inner();
     Ok(ScriptOutput { project: st.project, log: st.log })

@@ -68,3 +68,10 @@ Les tests de l’issue #19 vérifient les erreurs de conversion, les historiques
 Annuler/Rétablir et la préservation des fichiers, y compris une sortie existante
 ou égale à l’entrée. Ce correctif ne change ni les formats ni l’allocation des
 identifiants du projet.
+
+## Assistant natif
+
+Depuis 0.7.0, un panneau egui commun utilise les contrats du module Studio.
+Voir [ADR 0005](adr/0005-assistant.md) et [actions, données et limites](assistant.md).
+Les transports et aperçus sont calculés hors rendu ; seul un lot relu et validé
+est appliqué au document courant.

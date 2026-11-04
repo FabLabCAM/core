@@ -21,6 +21,7 @@ enum Pending {
     Quit,
 }
 enum Transfer {
+    Written,
     Import,
     Export(Vec<u8>),
 }
@@ -49,6 +50,31 @@ pub struct FurnitureUi {
     machines: Vec<Profile>,
 }
 impl FurnitureUi {
+    pub fn assistant_document(&self) -> Option<Document> {
+        self.draft.as_ref().map(|d|d.document.clone())
+    }
+    pub fn assistant_cell(&self) -> Option<String> {
+        self.draft.as_ref().map(|_|self.composer.selected.clone())
+    }
+    pub fn assistant_check_install(&self,document:Option<&Document>)->Result<(),String> {
+        if self.busy(){return Err("Terminez le dialogue Meubles avant d'appliquer".into());}
+        if let Some(d)=document {d.check()?;}
+        Ok(())
+    }
+    pub fn assistant_install(&mut self,document:Option<Document>) {
+        if self.assistant_document()==document {return;}
+        match (self.draft.as_mut(),document) {
+            (Some(d),Some(next)) if d.document.id()==next.id()=>{
+                let previous=std::mem::replace(&mut d.document,next);d.record(previous);
+            }
+            (_,Some(next))=>{self.models=next.is_template();self.draft=Some(Draft::new(next));self.step=0;self.composing=true;}
+            (_,None)=>self.draft=None,
+        }
+    }
+    pub fn assistant_export_zip(&mut self) {
+        if let Some(Document::Furniture(f))=self.assistant_document(){self.export_dossier(&f);}
+        else {self.message="Ouvrez un meuble pour exporter son dossier".into();}
+    }
     pub fn new(root: Option<PathBuf>) -> Self {
         Self {
             open: false,
