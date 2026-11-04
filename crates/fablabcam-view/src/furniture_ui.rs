@@ -1,4 +1,5 @@
 //! Furniture UI. Domain rules, persistence and export remain in fablabcam-studio.
+mod composer;
 mod dossier;
 mod editor;
 mod fields;
@@ -32,7 +33,10 @@ pub struct FurnitureUi {
     models: bool,
     step: usize,
     sheet: usize,
+    cam_face: fablabcam_studio::furniture::MachiningFace,
     exploded: bool,
+    composing: bool,
+    composer: composer::ComposerUi,
     pending: Option<Pending>,
     incoming: Option<Document>,
     dialog: Option<(Transfer, Receiver<Reply>)>,
@@ -53,7 +57,10 @@ impl FurnitureUi {
             models: true,
             step: 0,
             sheet: 0,
+            cam_face: fablabcam_studio::furniture::MachiningFace::Front,
             exploded: false,
+            composing: false,
+            composer: composer::ComposerUi::default(),
             pending: None,
             incoming: None,
             dialog: None,
