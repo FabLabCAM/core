@@ -28,19 +28,16 @@ impl FurnitureUi {
         }
     }
     pub(super) fn export_dossier(&mut self, f: &Furniture) {
-        match fabrication_zip(f, &self.options) {
-            Ok(bytes) => self.spawn(Transfer::Export(bytes), || {
-                desktop::save_dialog(
-                    "Exporter le dossier de fabrication (nouveau fichier)",
-                    "fabrication.zip",
-                    None,
-                )
-            }),
-            Err(e) => {
-                self.feedback(Err(e), "");
-            }
-        }
+        let job=f.clone();let options=self.options.clone();
+        self.spawn(Transfer::Written,move || {
+            let bytes=fabrication_zip(&job,&options)?;
+            let path=desktop::save_dialog("Exporter le dossier de fabrication (nouveau fichier)","fabrication.zip",None)?;
+            if let Some(path)=&path {export_file(path,&bytes)?;}
+            Ok(path)
+        });
+        self.message="Préparation du dossier, puis choix de la destination…".into();
     }
+
     fn spawn(&mut self, transfer: Transfer, f: impl FnOnce() -> super::Reply + Send + 'static) {
         if self.dialog.is_some() {
             return;
@@ -71,6 +68,7 @@ impl FurnitureUi {
                 self.path = path.display().to_string();
                 match transfer {
                     Transfer::Import => self.import_path(path),
+                    Transfer::Written => { self.feedback(Ok(()),"Dossier exporté"); },
                     Transfer::Export(bytes) => {
                         let r = export_file(&path, &bytes);
                         self.feedback(r, "Export terminé");

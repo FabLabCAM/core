@@ -14,6 +14,8 @@ use std::path::{Path, PathBuf};
 mod desktop;
 mod machine_ui;
 mod furniture_ui;
+mod assistant_ui;
+mod script_job;
 use desktop::Prefs;
 
 const HELP: &str = "fablabcam-studio-ui — éditeur 2D FabLabCAM
@@ -191,6 +193,8 @@ impl Draw {
 }
 
 struct App {
+    assistant: assistant_ui::AssistantUi,
+    assistant_document: String,
     furniture: furniture_ui::FurnitureUi,
     machines: machine_ui::MachineUi,
     studio: Studio,
@@ -266,6 +270,7 @@ struct App {
     show_script: bool,
     script_code: String,
     script_log: String,
+    script_job: Option<script_job::ScriptJob>,
     text_value: String,
     text_height: f64,
     text_spacing: f64,
@@ -337,6 +342,8 @@ impl App {
         let prefs = Prefs::load();
         let layer = first_layer(&project);
         App {
+            assistant: assistant_ui::AssistantUi::new(),
+            assistant_document: fablabcam_studio::furniture::new_id(),
             furniture: furniture_ui::FurnitureUi::new(desktop::furniture_store()),
             machines: machine_ui::MachineUi::new(desktop::machine_store()),
             studio: Studio::new(project),
@@ -403,6 +410,7 @@ impl App {
             show_script: false,
             script_code: "// exemple : plaque percée aux quatre coins\nlayer(\"Plaque\");\nlet p = rect(0, 0, 100, 60);\nlet trous = [];\nfor x in [10, 90] { for y in [10, 50] { trous.push(circle(x, y, 1.5)); } }\nprint(`${shapes().len()} formes`);\n".into(),
             script_log: String::new(),
+            script_job: None,
             text_value: "FabLabCAM".into(),
             text_height: 10.0,
             text_spacing: 0.0,
@@ -630,6 +638,7 @@ impl App {
 
     /// Repart d'un projet chargé ou vide : sélections, brouillons et vue remis à zéro.
     fn replace_project(&mut self, project: Project, path: Option<PathBuf>) {
+        self.assistant_document = fablabcam_studio::furniture::new_id();
         self.saved = project.clone();
         self.studio = Studio::new(project);
         self.doc_path = path;
@@ -847,7 +856,7 @@ impl App {
             }
             Action::ExportGcode => self.save_dialog(Purpose::ExportGcode, "Exporter le G-code", format!("{}.nc", self.stem())),
             Action::Prefs => self.show_prefs = true,
-            Action::Script => self.show_script = true,
+            Action::Script => {self.show_script=true;self.furniture.open=false;self.machines.open=false;},
             Action::Undo => {
                 self.studio.undo();
                 self.selection.retain(|id| self.studio.project().shape(*id).is_some());
@@ -881,6 +890,8 @@ impl App {
                 }
             }
             Action::View(v) => {
+                self.side=SideTab::Projet;
+                self.show_script=false;
                 self.furniture.open = false;
                 self.machines.open = false;
                 self.view = v;
@@ -905,8 +916,8 @@ impl App {
             }
             Action::NewOp(k) => self.add_op_for_selection(k),
             Action::PickPost => self.open_dialog(Purpose::PickPost, "Choisir un post-processeur", &["cbpp"]),
-            Action::System => self.side = SideTab::Systeme,
-            Action::Machines => { self.furniture.open = false; self.machines.open(); },
+            Action::System => { self.side = SideTab::Systeme; self.show_script=false; self.furniture.open=false; self.machines.open=false; },
+            Action::Machines => { self.show_script=false; self.furniture.open = false; self.machines.open(); },
             Action::Help => self.show_help = true,
         }
     }
@@ -990,6 +1001,7 @@ impl App {
             item(ui, "Tout sélectionner", "Cmd+A", Action::SelectAll, &mut act);
         });
         ui.menu_button("Affichage", |ui| {
+            ui.checkbox(&mut self.assistant.open,"Assistant");
             ui.set_min_width(220.0);
             item(ui, "Plan 2D", "1", Action::View(View::Plan), &mut act);
             item(ui, "3D", "2", Action::View(View::Vue3D), &mut act);
@@ -1127,43 +1139,54 @@ impl App {
         }
     }
 
-    fn script_window(&mut self, ctx: &egui::Context) {
-        let mut open = self.show_script;
+    fn script_panel(&mut self, ui: &mut egui::Ui) {
         let (mut run, mut load) = (false, false);
-        egui::Window::new("Script (Rhai)").open(&mut open).default_width(520.0).show(ctx, |ui| {
+        egui::Frame::none().inner_margin(12.0).show(ui, |ui| {
+            ui.heading("Script Rhai");
             ui.small("rect, circle, line, arc, polyline, text, move, rotate, scale, copy, offset, delete, tool, drill_tool, profile, pocket, drill, engrave, layer, shapes, print");
-            egui::ScrollArea::vertical().max_height(320.0).show(ui, |ui| {
+            egui::ScrollArea::vertical().id_source("script-editor").max_height((ui.available_height()-100.0).max(180.0)).show(ui, |ui| {
                 ui.add(egui::TextEdit::multiline(&mut self.script_code).code_editor().desired_rows(14).desired_width(f32::INFINITY));
             });
             ui.horizontal(|ui| {
-                run = ui.button("Exécuter").clicked();
+                run = ui.add_enabled(self.script_job.is_none(),egui::Button::new("Exécuter")).clicked();
+                if self.script_job.is_some() {ui.spinner();if ui.button("Arrêter le script").clicked(){self.script_job=None;self.script_log="Script arrêté, projet inchangé".into();}}
                 load = ui.button("Ouvrir un script…").clicked();
             });
+            ui.small("Exécuter modifie le projet ; rejouer un script de création ajoute des formes. Cmd+Z dans le dessin annule l’exécution.");
             if !self.script_log.is_empty() {
                 ui.separator();
                 ui.monospace(&self.script_log);
             }
         });
-        self.show_script = open;
+
         if load {
             self.open_dialog(Purpose::LoadScript, "Ouvrir un script", &["rhai", "txt"]);
         }
         if run {
-            let code = self.script_code.clone();
-            // une seule étape d'annulation ; en cas d'erreur le projet reste intact
-            let r = self.studio.edit(|p| {
-                let out = fablabcam_studio::script::run(p, &code).map_err(shape::EditError::InvalidParameter)?;
-                *p = out.project;
-                Ok(out.log)
-            });
-            match r {
-                Ok(log) => {
-                    self.script_log = if log.is_empty() { "terminé".into() } else { log.join("\n") };
-                    self.selection.retain(|id| self.studio.project().shape(*id).is_some());
-                    self.status = "script exécuté (Cmd+Z pour annuler)".into();
+            self.script_log="Exécution en cours…".into();
+            self.script_job=Some(script_job::ScriptJob::start(self.assistant_document.clone(),self.studio.rev,
+                self.studio.project().clone(),self.script_code.clone(),ui.ctx().clone()));
+        }
+    }
+
+    fn poll_script(&mut self) {
+        let event=self.script_job.as_ref().and_then(|j|j.events.try_recv().ok());
+        let Some(result)=event else{return;};
+        let job=self.script_job.take().expect("job produced result");
+        if job.document!=self.assistant_document || job.revision!=self.studio.rev || job.code!=self.script_code {
+            self.script_log="Document ou script modifié pendant le calcul : résultat abandonné, relancez le script".into();
+            return;
+        }
+        match result {
+            Ok((project,log))=>match self.studio.install_prepared(project) {
+                Ok(())=>{
+                    self.script_log=if log.is_empty(){"Terminé".into()}else{log.join("\n")};
+                    self.selection.retain(|id|self.studio.project().shape(*id).is_some());
+                    self.status="Script exécuté (Cmd+Z dans le dessin pour annuler)".into();
                 }
-                Err(e) => self.script_log = format!("Erreur : {e}"),
-            }
+                Err(e)=>self.script_log=format!("Erreur : {e}"),
+            },
+            Err(e)=>self.script_log=format!("Erreur : {e}"),
         }
     }
 
@@ -2868,16 +2891,23 @@ impl App {
     fn view_bar(&mut self, ui: &mut egui::Ui) {
         egui::Frame::none().fill(Color32::from_rgb(28, 30, 33)).inner_margin(egui::Margin::symmetric(8.0, 4.0)).show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
+                if ui.selectable_label(self.assistant.open,"Assistant").clicked(){self.assistant.open = !self.assistant.open;}
                 for (v, label) in [(View::Plan, "Plan 2D"), (View::Vue3D, "3D"), (View::Simulation, "Simulation")] {
-                    if ui.selectable_label(!self.machines.open && !self.furniture.open && self.view == v, label).clicked() {
+                    if ui.selectable_label(!self.show_script && !self.machines.open && !self.furniture.open && self.view == v, label).clicked() {
                         self.run(Action::View(v), ui.ctx());
                     }
                 }
+                if ui.selectable_label(self.show_script,"Scripts").clicked(){self.run(Action::Script,ui.ctx());}
+                if ui.selectable_label(!self.show_script && !self.furniture.open && !self.machines.open && self.side==SideTab::Systeme,"Outils").clicked(){
+                    self.show_script=false;self.furniture.open=false;self.machines.open=false;self.side=SideTab::Systeme;
+                }
                 if ui.selectable_label(self.machines.open, "Profils machine").clicked() {
+                    self.show_script=false;
                     self.furniture.open = false;
                     self.machines.open();
                 }
                 if ui.selectable_label(self.furniture.open, "Meubles").clicked() {
+                    self.show_script=false;
                     self.machines.open = false;
                     self.furniture.open();
                 }
@@ -2889,7 +2919,7 @@ impl App {
                         self.status = "Profil associé à la dalle ; sélectionnez et vérifiez le post-processeur".into();
                     } else { self.status = "Attention : complétez ou appliquez le profil Atelier avant association".into(); }
                 }
-                if self.machines.open || self.furniture.open { return; }
+                if self.machines.open || self.furniture.open || self.show_script { return; }
                 if let Some(profile) = &self.studio.project().machine_profile {
                     ui.label(format!("FAO meuble · {} · post : {}", profile.name, profile.controller.postprocessor));
                 }
@@ -3080,7 +3110,7 @@ impl eframe::App for App {
             } else { self.run(a, ctx); }
         }
         // outils de dessin au clavier (sans modificateur, hors saisie, hors tracé en cours)
-        if !typing && !self.machines.open && !self.furniture.open && self.pts.is_empty() {
+        if !typing && !self.show_script && !self.machines.open && !self.furniture.open && self.pts.is_empty() {
             let pick = ctx.input(|i| {
                 if i.modifiers.command || i.modifiers.alt {
                     return None;
@@ -3219,8 +3249,11 @@ impl eframe::App for App {
             }
         });
         }
+        self.poll_script();
+        self.assistant_panel(ctx);
         egui::CentralPanel::default().frame(egui::Frame::none()).show(ctx, |ui| {
             self.view_bar(ui);
+            if self.show_script {self.script_panel(ui);return;}
             if self.furniture.open { self.furniture.show(ui); return; }
             if self.machines.open { self.machines.show(ui); return; }
             match self.view {
@@ -3274,9 +3307,7 @@ impl eframe::App for App {
         if self.show_prefs {
             self.prefs_window(ctx);
         }
-        if self.show_script {
-            self.script_window(ctx);
-        }
+
         let native_quit = desktop::finder::take_quit();
         if (native_quit || ctx.input(|i| i.viewport().close_requested())) && !self.allow_close && self.smoke.is_none() {
             if self.furniture.dirty() || self.furniture.busy() {

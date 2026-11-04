@@ -196,7 +196,30 @@ pub struct Studio {
     pub rev: u64,
 }
 
+/// A coherent project/cache pair, calculated off the render thread before installation.
+#[derive(Debug, Clone)]
+pub struct PreparedProject {
+    project: Project,
+    computed: BTreeMap<u32, Computed>,
+}
+impl PreparedProject {
+    pub fn new(project: Project) -> Self {
+        let studio=Studio::new(project);
+        Self { project:studio.editor.project, computed:studio.computed }
+    }
+    pub fn diagnostics(&self)->Vec<String> {
+        self.computed.iter().filter_map(|(id,c)|c.error.as_ref().map(|e|format!("Opération {id} : {e}"))).collect()
+    }
+}
+
 impl Studio {
+    /// One history entry; reuse the cache prepared for this exact project.
+    pub fn install_prepared(&mut self, prepared: PreparedProject)->Result<(),EditError> {
+        self.editor.edit(|p|{*p=prepared.project;Ok(())})?;
+        self.computed=prepared.computed;
+        self.rev+=1;
+        Ok(())
+    }
     pub fn new(project: Project) -> Self {
         let mut s = Studio { editor: Editor::new(project), computed: BTreeMap::new(), rev: 0 };
         s.recalc();

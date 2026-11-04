@@ -5,7 +5,7 @@ use eframe::egui;
 use fablabcam_studio::furniture::*;
 
 pub(super) struct ComposerUi {
-    selected: String,
+    pub(super) selected: String,
     columns: usize,
     rows: usize,
     count: usize,

@@ -23,3 +23,20 @@ sha2 = "0.10.9"
 tempfile = "3.27.0"
 zip = { version = "9.3.0", default-features = false }
 pdf-writer = "0.15.0"
+genai = { version = "=0.7.3", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "json"] }
+tokio = { version = "1", features = ["rt", "time", "sync", "macros"] }
+futures-util = "0.3"
+schemars = "1.2.3"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3.6.3", features = ["apple-native"] }
+
+[target.'cfg(windows)'.dependencies]
+keyring = { version = "3.6.3", features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3.6.3", features = ["sync-secret-service", "crypto-rust", "vendored"] }
+
+[dev-dependencies]
+dotenvy = "0.15.7"
