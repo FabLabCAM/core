@@ -1,5 +1,27 @@
 # Mémoire de maintenance FabLabCAM
 
+## Version 0.7.1 en préparation : crash et diagnostics, issue #24
+
+- Cause isolée : forme #12 du DXF, E fermé de 13 sommets dont le dernier répète
+  le premier. Offset ±1,5 mm : panique release à `pline_offset.rs:714`.
+  Nettoyer une copie dans geom, préserver les bulges sortants et le dessin.
+  La PR #25 de l'issue #23 contient la même normalisation ; éviter un doublon
+  divergent lors de son intégration. Les corrections de format Mach3 restent
+  hors du périmètre #24.
+- Service `studio::diagnostics`, UI `diagnostics_ui`, [ADR 0006](adr/0006-diagnostics.md)
+  et [QA](qa/0.7.1.md). Les erreurs de calcul sont récupérées avant winit ; les
+  aperçus précédents restent visibles, mais `check_cam_export` refuse leur export.
+- Piles capturées sans dépendre de RUST_BACKTRACE, réglages atomiques/persistants,
+  hook sans verrou du journal et fichiers exclusifs pour préserver la première
+  panne. Ne jamais activer les logs globaux des clients IA dans ce journal.
+- Core désactivé à chaque lancement ; `get-task-allow` seulement dans un bundle
+  diagnostic distinct. Sur Apple Silicon, RLIMIT_CORE teste la mémoire virtuelle,
+  pas seulement la taille finale du fichier. Ne pas réintroduire un plafond de
+  1 Gio qui rend la capture inopérante. Ne pas partager automatiquement un core.
+- La distribution et la publication du guide restent à faire après les PR et
+  contrôles de `releasing.md`. Garder #24 ouverte jusqu'à cette vérification.
+
+
 ## Version 0.7.0 : assistant natif, issue #20
 
 - Architecture et contrats : [ADR 0005](adr/0005-assistant.md), [assistant](assistant.md),

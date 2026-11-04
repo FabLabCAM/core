@@ -1,5 +1,19 @@
 # Notes de version
 
+## 0.7.1 — en préparation
+
+### Profils DXF et diagnostics — [#24](https://github.com/FabLabCAM/core/issues/24)
+
+- Suppression des sommets répétés sur une copie avant les offsets : corrige le
+  crash du profil des 19 formes, sans modifier le dessin ni ses arcs.
+- Une panique du calcul est convertie en erreur ; le projet reste éditable et
+  un parcours obsolète ne peut plus servir à un export natif/CLI du projet.
+- Outils → Préférences → Diagnostics : niveau Normal/Détaillé, piles complètes,
+  journaux avec rotation, ouverture du dossier et export texte.
+- Core macOS sur armement explicite par session, avec contrôle de la signature,
+  du noyau, des limites et du disque ; compilation de diagnostic et dSYM séparés.
+- Tests de non-régression, capture contrôlée relue dans LLDB et guide actualisé.
+
 ## 0.7.0 — 2026-11-04
 
 ### Assistant natif — [#20](https://github.com/FabLabCAM/core/issues/20)
