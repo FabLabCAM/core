@@ -1,6 +1,9 @@
 # Notes de version
 
-## Non publié
+## 0.7.1-rc.1 — 2026-11-05
+
+Préversion destinée à la validation Mach3 de #23. Le test utilisateur confirme
+`lyon3.v1` ; les trois autres fichiers restent à vérifier.
 
 ### Arcs et initialisation du G-code — [#23](https://github.com/FabLabCAM/core/issues/23)
 

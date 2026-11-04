@@ -1228,11 +1228,11 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-backplot"
-version = "0.7.0"
+version = "0.7.1-rc.1"
 
 [[package]]
 name = "fablabcam-cam"
-version = "0.7.0"
+version = "0.7.1-rc.1"
 dependencies = [
  "fablabcam-geom",
  "fablabcam-model",
@@ -1243,7 +1243,7 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-cli"
-version = "0.7.0"
+version = "0.7.1-rc.1"
 dependencies = [
  "fablabcam-backplot",
  "fablabcam-cam",
@@ -1257,14 +1257,14 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-geom"
-version = "0.7.0"
+version = "0.7.1-rc.1"
 dependencies = [
  "cavalier_contours",
 ]
 
 [[package]]
 name = "fablabcam-model"
-version = "0.7.0"
+version = "0.7.1-rc.1"
 dependencies = [
  "fablabcam-geom",
  "roxmltree",
@@ -1272,7 +1272,7 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-studio"
-version = "0.7.0"
+version = "0.7.1-rc.1"
 dependencies = [
  "dotenvy",
  "fablabcam-backplot",
@@ -1298,7 +1298,7 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-view"
-version = "0.7.0"
+version = "0.7.1-rc.1"
 dependencies = [
  "eframe",
  "egui_commonmark",
