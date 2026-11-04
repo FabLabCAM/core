@@ -1,5 +1,32 @@
 # Notes de version
 
+## 0.5.0 — 2026-11-04
+
+### Meubles paramétriques — [#14](https://github.com/FabLabCAM/core/issues/14)
+
+- Nouvel espace **Meubles** : bibliothèques de modèles réutilisables et de projets,
+  création, modification, duplication, annulation/rétablissement et import/export
+  natif JSON versionné avec aperçu et copie en cas de collision.
+- Assistant **Meuble → Matière & CNC → Découpe → Dossier**, caisson et étagère
+  à panneaux vissés, dimensions extérieures, épaisseur, dos et tablettes.
+- Aperçus assemblé/éclaté, repères stables, nomenclature et placement rectangulaire
+  déterministe avec marges, espacement, rotations et refus des pièces hors dalle.
+- Instantanés du modèle et du profil machine ; révisions de modèles indépendantes
+  des meubles existants, écritures atomiques et protection des conflits concurrents.
+- Dossier ZIP : natif, CB/DXF/SVG par dalle, CSV et notice PDF. Transfert d'une dalle
+  vers la FAO ; le profil reste attaché au `.cb`. L'export G-code associé exige
+  des opérations calculées et une analyse valide, jamais un rapport incomplet.
+- Commandes `fablabcam furniture template|new|validate|plan|pack`, guide illustré,
+  exemples reproductibles, décision d'architecture et mémoire de maintenance.
+
+Le caisson 600 × 600 × 800 mm, OSB 20 mm, dos et tablette produit six pièces sur
+trois dalles 1 500 × 800 mm (marge 10, fraise 6, espacement 8 mm). Ces dimensions
+sont un exemple de travail, pas une qualification des limites d'une CNC.
+La V1 ne dimensionne pas la quincaillerie, les ancrages ni les charges. Elle ne
+couvre pas les portes, tiroirs, assemblages usinés ou formes arbitraires. Le
+placement est heuristique ; la FAO et le choix du post restent explicites.
+
+
 ## 0.4.1 — 2026-11-03
 
 ### ID CNC PRO - Mach3 par défaut — [#9](https://github.com/FabLabCAM/core/issues/9)

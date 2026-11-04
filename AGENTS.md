@@ -2,6 +2,8 @@
 
 CAO/FAO en Rust, sous Apache-2.0. Dépôt : https://github.com/FabLabCAM/core.
 
+- Lire `docs/agent-memory.md` pour le contexte de maintenance et la dernière livraison.
+
 - Conserver les sept crates `fablabcam-*` et séparer moteurs et interfaces.
 - Documenter les choix, hypothèses et limites dans `docs/`.
 - Préserver le support `.cb`, le schéma XML et les tests de géométrie.

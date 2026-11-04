@@ -1,7 +1,7 @@
 # FabLabCAM
 
 CAO/FAO libre en Rust pour les FabLabs : dessin 2D, préparation d'usinage 2,5D,
-G-code, visualisation des trajectoires et simulation de matière.
+G-code, visualisation des trajectoires, simulation de matière et meubles paramétriques.
 
 Dépôt : https://github.com/FabLabCAM/core · Licence : [Apache-2.0](LICENSE).
 
@@ -52,7 +52,25 @@ cargo run --locked -p fablabcam-cli -- web demo -o studio.html
 Les valeurs des fixtures servent aux tests ; adapter les réglages à la machine,
 au matériau et à l'outil avant tout usinage réel.
 
-## Profils de machine (0.4.1)
+## Meubles pour le FabLab (0.5.0)
+
+Ouvrez **Meubles** dans le Studio : créez un modèle de caisson ou d'étagère,
+utilisez-le pour un meuble, puis réglez matière, CNC et dalles. L'assistant produit
+un dossier ZIP avec plans CB/DXF/SVG, liste de débit CSV et notice PDF.
+Les modèles et meubles s'échangent au format `.fcm-template.json` / `.fcm.json`.
+
+```sh
+fablabcam furniture template cabinet -o caisson.fcm-template.json
+fablabcam furniture new caisson.fcm-template.json -o caisson.fcm.json
+fablabcam furniture plan caisson.fcm.json
+fablabcam furniture pack caisson.fcm.json -o fabrication.zip
+```
+
+Voir le [guide illustré](https://fablabcam.github.io/docs/guide/meubles/) et les
+[formats, calculs et limites](docs/furniture.md). Les opérations FAO restent à
+préparer. Une dalle associée à un profil incomplet ne peut pas exporter de G-code.
+
+## Profils de machine (depuis 0.4.1)
 
 Dans le Studio, ouvrez **Profils machine** ou **Outils → Profils machine · Atelier**.
 Créez un profil avec l'assistant, modifiez ses paramètres, dupliquez-le ou
@@ -85,6 +103,7 @@ La CI exécute ces vérifications sous Linux, Windows et macOS. Le fichier
 ## Formats et distribution
 
 - Dessins : `.cb` (XML), DXF et SVG ; programmes : G-code.
+- Modèles et meubles : JSON natif versionné ; dossiers de fabrication : ZIP.
 - Le format `.cb` du Studio ajoute des outils et opérations propres à FabLabCAM.
   Voir [les limites d'interopérabilité](docs/file-formats.md).
 - [Construction des applications](docs/building.md) pour macOS, Windows et Linux.

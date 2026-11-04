@@ -13,12 +13,14 @@ use std::path::{Path, PathBuf};
 
 mod desktop;
 mod machine_ui;
+mod furniture_ui;
 use desktop::Prefs;
 
 const HELP: &str = "fablabcam-studio-ui — éditeur 2D FabLabCAM
 
 USAGE  fablabcam-studio-ui [fichier.cb|.dxf|.svg] [options]
   --tab machines   ouvre la bibliothèque des profils machine
+  --tab meubles    ouvre le module de meubles paramétriques
   --demo-dessin     dessin d'exemple (plusieurs types de formes)
   --select <a,b>    sélectionne les formes de rang a, b… (1 = première)
   --smoke <n>       dessine n images puis quitte (test de bon fonctionnement)
@@ -30,6 +32,7 @@ enum Pending {
     New,
     Open(PathBuf),
     Quit,
+    Furniture(Box<Project>, Box<fablabcam_cam::gcode::machine::Profile>),
 }
 
 /// Ce qu'il faut faire du chemin choisi dans un dialogue (ouvert dans un fil à part).
@@ -188,6 +191,7 @@ impl Draw {
 }
 
 struct App {
+    furniture: furniture_ui::FurnitureUi,
     machines: machine_ui::MachineUi,
     studio: Studio,
     tool: Draw,
@@ -333,6 +337,7 @@ impl App {
         let prefs = Prefs::load();
         let layer = first_layer(&project);
         App {
+            furniture: furniture_ui::FurnitureUi::new(desktop::furniture_store()),
             machines: machine_ui::MachineUi::new(desktop::machine_store()),
             studio: Studio::new(project),
             tool: Draw::Select,
@@ -792,7 +797,21 @@ impl App {
         match p {
             Pending::New => self.new_doc(true),
             Pending::Open(path) => self.open_path(&path, true),
+            Pending::Furniture(project, machine) => {
+                self.replace_project(*project, None);
+                self.saved = Project::new();
+                self.studio.editor.project.machine_profile = Some(*machine);
+                self.post_path.clear();
+                self.furniture.open = false;
+                self.machines.open = false;
+                self.view = View::Plan;
+                self.status = "Dalle chargée en FAO : réglez les opérations et le post-processeur ; profil machine attaché à l'analyse G-code".into();
+            }
             Pending::Quit => {
+                if self.furniture.dirty() || self.furniture.busy() {
+                    self.furniture.request_quit();
+                    return;
+                }
                 if self.machines.dirty() || self.machines.busy() {
                     self.machines.request_quit();
                     return;
@@ -804,6 +823,17 @@ impl App {
     }
 
     fn run(&mut self, a: Action, ctx: &egui::Context) {
+        if self.furniture.open {
+            match a {
+                Action::New => { self.furniture.new_document(); return; }
+                Action::Open | Action::Import => { self.furniture.import(); return; }
+                Action::Save => { self.furniture.save(); return; }
+                Action::SaveAs | Action::ExportGcode => { self.furniture.export_native(); return; }
+                Action::Undo => { self.furniture.undo(); return; }
+                Action::Redo => { self.furniture.redo(); return; }
+                _ => {}
+            }
+        }
         match a {
             Action::New => self.new_doc(false),
             Action::Open => self.open_dialog(Purpose::Open, "Ouvrir un projet ou un dessin", &["cb", "dxf", "svg"]),
@@ -851,6 +881,7 @@ impl App {
                 }
             }
             Action::View(v) => {
+                self.furniture.open = false;
                 self.machines.open = false;
                 self.view = v;
                 if v == View::Vue3D {
@@ -875,7 +906,7 @@ impl App {
             Action::NewOp(k) => self.add_op_for_selection(k),
             Action::PickPost => self.open_dialog(Purpose::PickPost, "Choisir un post-processeur", &["cbpp"]),
             Action::System => self.side = SideTab::Systeme,
-            Action::Machines => self.machines.open(),
+            Action::Machines => { self.furniture.open = false; self.machines.open(); },
             Action::Help => self.show_help = true,
         }
     }
@@ -2442,6 +2473,9 @@ impl App {
                 Err(e) => return format!("Attention : {e}"),
             }
         };
+        if let Err(error) = fablabcam_studio::furniture::check_cam_export(&self.studio, &code) {
+            return format!("Attention : {error}");
+        }
         match std::fs::write(out, code) {
             Ok(()) => format!("{} écrit", absolute(out)),
             Err(e) => format!("Attention : {} : {e}", absolute(out)),
@@ -2835,14 +2869,30 @@ impl App {
         egui::Frame::none().fill(Color32::from_rgb(28, 30, 33)).inner_margin(egui::Margin::symmetric(8.0, 4.0)).show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
                 for (v, label) in [(View::Plan, "Plan 2D"), (View::Vue3D, "3D"), (View::Simulation, "Simulation")] {
-                    if ui.selectable_label(!self.machines.open && self.view == v, label).clicked() {
+                    if ui.selectable_label(!self.machines.open && !self.furniture.open && self.view == v, label).clicked() {
                         self.run(Action::View(v), ui.ctx());
                     }
                 }
                 if ui.selectable_label(self.machines.open, "Profils machine").clicked() {
+                    self.furniture.open = false;
                     self.machines.open();
                 }
-                if self.machines.open { return; }
+                if ui.selectable_label(self.furniture.open, "Meubles").clicked() {
+                    self.machines.open = false;
+                    self.furniture.open();
+                }
+                if self.machines.open && self.studio.project().machine_profile.is_some()
+                    && ui.button("Associer ce profil à la dalle FAO").clicked() {
+                    if let Some(profile) = self.machines.selected_profile() {
+                        let result = self.studio.edit(|p| { p.machine_profile = Some(profile); Ok(()) });
+                        self.report(result);
+                        self.status = "Profil associé à la dalle ; sélectionnez et vérifiez le post-processeur".into();
+                    } else { self.status = "Attention : complétez ou appliquez le profil Atelier avant association".into(); }
+                }
+                if self.machines.open || self.furniture.open { return; }
+                if let Some(profile) = &self.studio.project().machine_profile {
+                    ui.label(format!("FAO meuble · {} · post : {}", profile.name, profile.controller.postprocessor));
+                }
                 ui.separator();
                 match self.view {
                     View::Plan => {
@@ -2989,6 +3039,7 @@ impl eframe::App for App {
             }
         }
         self.machines.poll(ctx);
+        self.furniture.poll(ctx);
         let typing = ctx.wants_keyboard_input();
         let shortcut = ctx.input(|i| {
             let (c, sh) = (i.modifiers.command, i.modifiers.shift);
@@ -3010,7 +3061,15 @@ impl eframe::App for App {
         });
         self.poll_dialog(ctx);
         if let Some(a) = shortcut {
-            if self.machines.open {
+            if self.furniture.open {
+                match a {
+                    Action::New => self.furniture.new_document(),
+                    Action::Open | Action::Import => self.furniture.import(),
+                    Action::Save => { self.furniture.save(); }
+                    Action::SaveAs | Action::ExportGcode => self.furniture.export_native(),
+                    _ => self.run(a, ctx),
+                }
+            } else if self.machines.open {
                 match a {
                     Action::New => self.machines.new_profile(),
                     Action::Open | Action::Import => self.machines.import_profile(),
@@ -3021,7 +3080,7 @@ impl eframe::App for App {
             } else { self.run(a, ctx); }
         }
         // outils de dessin au clavier (sans modificateur, hors saisie, hors tracé en cours)
-        if !typing && !self.machines.open && self.pts.is_empty() {
+        if !typing && !self.machines.open && !self.furniture.open && self.pts.is_empty() {
             let pick = ctx.input(|i| {
                 if i.modifiers.command || i.modifiers.alt {
                     return None;
@@ -3070,7 +3129,11 @@ impl eframe::App for App {
             }
             ctx.request_repaint();
         }
-        if !typing && !self.machines.open {
+        if !typing && self.furniture.open {
+            if undo { self.furniture.undo(); }
+            if redo { self.furniture.redo(); }
+        }
+        if !typing && !self.machines.open && !self.furniture.open {
             if undo {
                 self.studio.undo();
                 self.selection.retain(|id| self.studio.project().shape(*id).is_some());
@@ -3099,7 +3162,7 @@ impl eframe::App for App {
                 menu_action = self.menu_bar(ui);
             });
         });
-        if !self.machines.open {
+        if !self.machines.open && !self.furniture.open {
         egui::TopBottomPanel::top("barre").show(ctx, |ui| {
             if let Some(a) = self.toolbar(ui) {
                 menu_action = Some(a);
@@ -3141,7 +3204,7 @@ impl eframe::App for App {
                 });
             });
         }
-        if !self.machines.open {
+        if !self.machines.open && !self.furniture.open {
         egui::SidePanel::left("side").default_width(340.0).show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.selectable_value(&mut self.side, SideTab::Projet, "Dessin");
@@ -3158,6 +3221,7 @@ impl eframe::App for App {
         }
         egui::CentralPanel::default().frame(egui::Frame::none()).show(ctx, |ui| {
             self.view_bar(ui);
+            if self.furniture.open { self.furniture.show(ui); return; }
             if self.machines.open { self.machines.show(ui); return; }
             match self.view {
                 View::Plan => self.canvas(ui),
@@ -3165,6 +3229,14 @@ impl eframe::App for App {
             }
         });
         // journal : chaque nouveau message, et la description de la sélection quand elle change
+        if self.furniture.open && !self.furniture.message.is_empty() {
+            self.status = format!("[Meubles] {}", self.furniture.message);
+        }
+        if let Some((project, machine)) = self.furniture.handoff.take() {
+            let action = Pending::Furniture(Box::new(project), Box::new(machine));
+            if self.dirty() { self.confirm = Some(action); }
+            else { self.continue_pending(action, ctx); }
+        }
         if self.machines.open && !self.machines.message.is_empty() {
             self.status = format!("[Profils machine] {}", self.machines.message);
         }
@@ -3207,7 +3279,10 @@ impl eframe::App for App {
         }
         let native_quit = desktop::finder::take_quit();
         if (native_quit || ctx.input(|i| i.viewport().close_requested())) && !self.allow_close && self.smoke.is_none() {
-            if self.machines.dirty() || self.machines.busy() {
+            if self.furniture.dirty() || self.furniture.busy() {
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                self.furniture.request_quit();
+            } else if self.machines.dirty() || self.machines.busy() {
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
                 self.machines.request_quit();
             } else if self.dirty() {
@@ -3218,6 +3293,12 @@ impl eframe::App for App {
             }
         }
         self.machines.windows(ctx);
+        self.furniture.windows(ctx);
+        if self.furniture.take_quit() {
+            if self.machines.dirty() || self.machines.busy() { self.machines.request_quit(); }
+            else if self.dirty() { self.confirm = Some(Pending::Quit); }
+            else { self.continue_pending(Pending::Quit, ctx); }
+        }
         if self.machines.take_quit() {
             if self.dirty() { self.confirm = Some(Pending::Quit); }
             else { self.continue_pending(Pending::Quit, ctx); }
@@ -3300,6 +3381,7 @@ fn main() {
         Some("tools") | Some("outils") | Some("systeme") => app.side = SideTab::Systeme,
         Some("ops") | Some("operations") => app.focus = Focus::Op,
         Some("machines") => app.machines.open(),
+        Some("meubles") | Some("furniture") => app.furniture.open(),
         Some("3d") => app.view = View::Simulation,
         _ => {}
     }

@@ -101,6 +101,13 @@ pub fn machine_store() -> Option<PathBuf> {
     Some(base.join("machines"))
 }
 
+pub fn furniture_store() -> Option<PathBuf> {
+    if let Some(path) = std::env::var_os("FABLABCAM_FURNITURE_STORE").filter(|p| !p.is_empty()) {
+        return Some(PathBuf::from(path));
+    }
+    machine_store()?.parent().map(|p| p.join("furniture"))
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Prefs {
     pub snap: bool,
