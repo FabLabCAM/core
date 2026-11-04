@@ -50,6 +50,7 @@ async fn four_wire_protocols_stream_plan_and_roundtrip_tool_result() {
         assert_eq!(first.path, expected);
         assert_eq!(second.path, expected);
         assert_eq!(first.body["model"], "test-model");
+        assert_eq!(first.body.to_string().contains("jamais des noms de fonctions"), p == Provider::Ollama);
         assert!(first.body["tools"].as_array().is_some_and(|t| !t.is_empty()));
         assert!(!first.body.to_string().contains("synthetic-test-secret"));
         if p != Provider::Ollama {
@@ -75,6 +76,7 @@ async fn ask_never_exposes_tools_and_rejects_unsolicited_calls() {
         let r = provider::request(&c, Mode::Ask, &context(), &[], "Explique").unwrap();
         assert!(provider::chat(&c, "test", r, Mode::Ask, |_| {}).await.is_err());
         let sent = server.requests.recv_timeout(Duration::from_secs(1)).unwrap();
+        assert!(!sent.body.to_string().contains("jamais des noms de fonctions"));
         assert!(sent.body.get("tools").is_none_or(|v| v.is_null() || v.as_array().is_some_and(|a| a.is_empty())));
     }
 }
@@ -145,4 +147,42 @@ fn configuration_and_history_never_store_a_key() {
     c.tools = false;
     assert!(provider::request(&c, Mode::Agent, &context(), &[], "Créer").is_err());
     assert!(provider::request(&c, Mode::Plan, &context(), &[], "Préparer").is_ok());
+}
+
+#[tokio::test]
+async fn provider_options_respect_model_reasoning_capabilities() {
+    for (provider, model, capture) in [
+        (Provider::OpenAi, "gpt-4.1-mini", false),
+        (Provider::OpenAi, "gpt-4.1-mini-2025-04-14", false),
+        (Provider::OpenAi, "gpt-4o-mini", false),
+        (Provider::OpenAi, "gpt-5-mini", true),
+        (Provider::Ollama, "qwen3:1.7b", true),
+    ] {
+        let server = server(provider, vec![(200, response(provider, true))]);
+        let mut c = connection(provider, server.endpoint);
+        c.model = model.into();
+        let request = provider::request(&c, Mode::Agent, &context(), &[], "Créer le caisson").unwrap();
+        let reply = provider::chat(&c, "test", request, Mode::Agent, |_| {}).await.unwrap();
+        assert!(reply.plan.is_some());
+        let sent = server.requests.recv_timeout(Duration::from_secs(1)).unwrap();
+        if provider == Provider::OpenAi {
+            assert_eq!(sent.body.get("reasoning").is_some(), capture, "{model}");
+            assert_eq!(sent.body.get("include").is_some(), capture, "{model}");
+        } else {
+            assert_eq!(sent.body["think"], false);
+            assert_eq!(sent.body["options"]["temperature"], 0.0);
+            assert_eq!(sent.body["options"]["num_predict"], c.max_tokens);
+        }
+    }
+}
+
+#[tokio::test]
+async fn ollama_empty_completed_reply_reports_model_limit_without_applying_a_plan() {
+    let body = "{\"model\":\"test-model\",\"message\":{\"content\":\"\"},\"done\":true,\"done_reason\":\"stop\"}\n";
+    let server = server(Provider::Ollama, vec![(200, body.into())]);
+    let c = connection(Provider::Ollama, server.endpoint);
+    let request = provider::request(&c, Mode::Agent, &context(), &[], "Créer").unwrap();
+    let error = provider::chat(&c, "", request, Mode::Agent, |_| {}).await.err().unwrap();
+    assert!(error.contains("sans texte ni appel d’outil exploitable"));
+    assert!(error.contains("Aucun changement appliqué"));
 }
