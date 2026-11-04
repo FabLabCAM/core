@@ -20,6 +20,8 @@
   `.cb` restent lisibles. L'export natif contrôlé refuse un rapport incomplet.
 - Stockage isolable avec `FABLABCAM_FURNITURE_STORE` ; écritures atomiques sous
   verrou et comparaison de l'état chargé. Ne jamais remplacer un modèle à l'import.
+- Références : [PR core #15](https://github.com/FabLabCAM/core/pull/15) et
+  [PR docs #5](https://github.com/FabLabCAM/docs/pull/5).
 - Tests : dimensions finies, variantes, non-chevauchement, placement complet,
   sérialisation, imports invalides, copie, concurrence, historique, ZIP/CB/PDF,
   contrôle G-code et parcours CLI. Tests workspace et Clippy obligatoires.
@@ -29,6 +31,9 @@
 - Régression découverte en QA : regrouper les frappes d'un champ en une seule
   étape d'annulation ; après sauvegarde, recharger le modèle courant avant de
   créer un meuble pour prendre la nouvelle révision.
+- Les noms d'outils apparaissent dans les commentaires G-code : conserver un
+  nom initial ASCII pour le profil Mach3. Le test de bout en bout vérifie aussi
+  qu'une configuration fictive complète peut exporter un parcours calculé.
 
 ## Livraison
 

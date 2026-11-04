@@ -44,7 +44,8 @@ fn project_for_sheet(job: &Furniture, layout: &Layout, sheet: usize) -> Result<P
         .map_err(|e| e.to_string())?;
     project
         .add_tool(Tool::new(
-            "Fraise meuble — régler les avances",
+            // Tool names appear in G-code comments; Mach3's reference profile requires ASCII.
+            "Fraise meuble - avances a regler",
             ToolKind::EndMill,
             job.setup.cutter,
         ))

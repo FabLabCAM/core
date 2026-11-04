@@ -101,12 +101,47 @@ fn cam_export_requires_operations_and_a_complete_machine_report() {
     use fablabcam_studio::{OpKind, Studio};
     let f = Furniture::from_template(Template::cabinet());
     let mut project = cam_project(&f, 0).unwrap();
-    assert!(check_cam_export(&Studio::new(project.clone()), "M30").unwrap_err().contains("opérations"));
+    assert!(check_cam_export(&Studio::new(project.clone()), "M30")
+        .unwrap_err()
+        .contains("opérations"));
     let shape = project.shapes[0].id;
     let tool = project.tools[0].name.clone();
-    project.add_operation(OpKind::Profile, "Contour", vec![shape], &tool).unwrap();
+    project
+        .add_operation(OpKind::Profile, "Contour", vec![shape], &tool)
+        .unwrap();
     let studio = Studio::new(persist::load(&persist::save(&project)).unwrap());
-    assert!(check_cam_export(&studio, &studio.gcode()).unwrap_err().contains("Export bloqué"));
+    assert!(check_cam_export(&studio, &studio.gcode())
+        .unwrap_err()
+        .contains("Export bloqué"));
     // Existing non-furniture projects retain the original export contract.
     assert!(check_cam_export(&Studio::default(), "M30").is_ok());
+}
+
+#[test]
+fn configured_fictional_machine_can_export_a_generated_furniture_toolpath() {
+    use fablabcam_cam::gcode::machine::Profile;
+    use fablabcam_studio::{OpKind, Studio};
+    let mut f = Furniture::from_template(Template::cabinet());
+    let mut machine =
+        Profile::from_json(include_str!("../../../profiles/mach3-mill-demo.json")).unwrap();
+    for (axis, limit) in [('X', 1500.0), ('Y', 800.0)] {
+        let a = machine.axes.get_mut(&axis).unwrap();
+        a.min = Some(0.0);
+        a.max = Some(limit);
+    }
+    // This synthetic controller preserves its declared modes and position at M6.
+    // This is a software fixture, never a suggested configuration of a real CNC.
+    machine.tools.m6_preserves_state = true;
+    machine.safety.required_preamble.clear();
+    f.setup.machine = machine;
+    let mut p = cam_project(&f, 0).unwrap();
+    let ids = p.shapes.iter().map(|s| s.id).collect();
+    let tool = p.tools[0].name.clone();
+    p.add_operation(OpKind::Profile, "Contour", ids, &tool)
+        .unwrap();
+    let studio = Studio::new(persist::load(&persist::save(&p)).unwrap());
+    let code = studio.gcode();
+    assert!(code.contains("G1"));
+    assert!(code.is_ascii());
+    check_cam_export(&studio, &code).unwrap();
 }
