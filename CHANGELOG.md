@@ -25,6 +25,8 @@
   retour Mach3 du correctif encore à confirmer. Pour `lyon3.v1`, le refus du
   premier arc en IJ absolu hérité est reproduit ; G91.1 corrige cette dépendance
   dans les trois exports, désormais couverts par une régression dédiée.
+- Retour utilisateur du 4 novembre 2026 : la copie de `lyon3.v1` ajoutant seulement
+  G91.1 fonctionne dans Mach3. Confirmation des trois autres KO encore attendue.
 
 ## 0.7.0 — 2026-11-04
 

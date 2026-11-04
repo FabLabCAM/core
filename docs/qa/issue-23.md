@@ -28,10 +28,11 @@ initiale « aucun rayon nul » était donc incorrecte. Le validateur rejette
 maintenant un rayon nul à l’une des deux extrémités, indépendamment de cette
 tolérance.
 
-Les photos expliquent le refus sur ce bloc ; aucun essai du correctif dans Mach3
-ou sur CNC n'a été effectué ici. `lyon3.v1` ne contient pas cette dégénérescence :
-son analyse dédiée ci-dessous reproduit un refus sous un mode IJ initial absolu. Ne pas fermer l'issue avant les
-retours sur les fichiers corrigés.
+Les photos expliquent le refus sur ce bloc. Le 4 novembre 2026, l'utilisateur
+confirme le fonctionnement dans Mach3 de la copie de vérification de `lyon3.v1`
+qui ajoute seulement G91.1. Cette validation utilisateur concerne ce fichier ;
+les trois copies corrigeant les arcs dégénérés restent à confirmer. Aucun essai
+Mach3/CNC n'a été exécuté par l'agent. La correction intégrée n'est pas publiée.
 
 ## Mesures sur les fichiers originaux
 
@@ -70,9 +71,13 @@ un arrêt attendu.
 
 ## Analyse dédiée de `lyon3.v1`
 
-L'utilisateur confirme « même message » pour ce fichier. Il n'a pas précisé
-la ligne d'arrêt ni le mode IJ réel : la reproduction suivante identifie un
-défaut de dépendance à l'état initial, sans prouver le réglage de son Mach3.
+Après avoir confirmé le même message d'erreur, l'utilisateur indique le
+4 novembre 2026 : « c bon le fichier de erification fonctionne sur mach3 ».
+Le fichier proposé juste avant ce retour est
+`lyon3.v1.IJ_INCREMENTAL_A_TESTER.nc`, dont seul le préambule reçoit G91.1.
+Ce retour confirme l'efficacité de cette correction sur son installation.
+Le réglage IJ initial et le détail de l'essai (chargement, marche à vide ou
+usinage) n'ont pas été relevés ; ils ne sont pas déduits de cette confirmation.
 
 L'audit complet porte sur 4 258 lignes et 1 072 arcs G2. Aucun rayon nul, aucune
 extrémité confondue, aucun arc majeur ; tous les arcs ont un rayon
@@ -119,11 +124,11 @@ ces seules coordonnées : il manque l'origine de travail, le homing et les
 bornes configurées. Aucun décalage, changement d'échelle, outil ou suppression
 M6 n'est appliqué pour masquer un éventuel autre blocage.
 
-**Conclusion :** l'omission du mode IJ est un défaut réel, corrigé et reproduit
-sur le premier arc de `lyon3.v1`. Son rôle dans le refus de cette installation
-reste à confirmer par rechargement de la copie ou par la ligne exacte de l'erreur.
-Si elle reste refusée, comparer ce bloc et l'état IJ effectif, y compris les
-macros M6 ; ne pas annoncer une résolution sur la base de l'analyse seule.
+**Résultat confirmé par l'utilisateur :** l'ajout du mode IJ incrémental
+résout le blocage signalé de `lyon3.v1`. Le test logiciel reproduit la dépendance
+et couvre la correction dans les trois exports ; le retour Mach3 confirme le
+fichier de vérification. Cette preuve ne vaut pas validation des trois autres
+KO, du réexport du DXF, ni d'une version FabLabCAM publiée.
 
 ## Défaut corrigé dans l'exporteur
 
@@ -247,7 +252,7 @@ résultats n'est une qualification machine.
 
 Recharger `projet_test002.ARCS_A_TESTER.nc` dans Mach3 et vérifier la disparition
 de l'erreur d'arc pendant la lecture, sans lancer l'usinage. Consigner le résultat
-pour les trois fichiers concernés. Recharger aussi la copie IJ dédiée de `lyon3.v1` ; obtenir sa ligne exacte si
-elle reste refusée. Les copies précédentes `MODES_A_TESTER` sont
+pour les trois fichiers concernés. La copie IJ dédiée de `lyon3.v1` est déjà
+confirmée fonctionnelle par l'utilisateur. Les copies précédentes `MODES_A_TESTER` sont
 insuffisantes pour corriger le bloc photographié. La validation des paramètres
 et de l'usinage reste distincte ; aucune nouvelle version n'est publiée ici.

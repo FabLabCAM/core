@@ -20,10 +20,12 @@
 - `lyon3.v1` : aucun arc nul/hors tolérance. En IJ absolu hérité, le premier
   arc (ligne physique 145) est refusé ; G91.1 seul supprime l'erreur de lecture
   dans l'analyse complète, sans changer aucun mouvement. Régression CAM/Studio/CBPP.
-- TODO(agent) : confirmer ARCS_A_TESTER et la copie IJ seule de `lyon3.v1` dans
-  Mach3 avant clôture. L'utilisateur confirme le même type d'erreur, sans ligne
-  ni mode IJ réel ; ne pas transformer cette reproduction conditionnelle en
-  certitude sur l'installation. Courses et origine restent inconnues.
+- Retour utilisateur du 2026-11-04 : la copie IJ seule de `lyon3.v1` fonctionne
+  dans Mach3. L'ajout de G91.1 résout donc son blocage signalé. Le mode IJ initial
+  et le détail de l'essai n'ont pas été relevés ; aucune CNC pilotée par l'agent.
+- TODO(agent) : obtenir le retour ARCS_A_TESTER des trois autres KO et terminer
+  la livraison avant clôture. Ne pas étendre la validation de `lyon3.v1` aux
+  autres fichiers. Courses et origine restent inconnues.
 
 ## Version 0.7.0 : assistant natif, issue #20
 
