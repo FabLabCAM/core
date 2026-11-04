@@ -1,5 +1,17 @@
 # Mémoire de maintenance FabLabCAM
 
+## Correctif SVG #26 — non publié
+
+- `svgio` sépare parcours XML, grammaire `svgtypes`, transformations et export.
+  Composer parent × local avant l'inversion Y ; exclure les sous-arbres de ressources.
+- Préserver les arcs sous similitude et le sens sous miroir ; aplatir les arcs sous
+  matrice non uniforme. Ne pas effacer le bulge du segment fermant un sous-chemin.
+- Les erreurs de grammaire annulent l'import ; effets/références non supportés
+  restent signalés. La convention historique des unités n'est pas modifiée.
+- [Architecture et limites](svg-import.md), [QA](qa/issue-26.md). Le logo utilisateur
+  reste hors dépôt ; utiliser les cas synthétiques pour la CI.
+- Garder #26 ouverte jusqu'à la distribution vérifiée, suivant `releasing.md`.
+
 ## Version 0.7.0 : assistant natif, issue #20
 
 - Architecture et contrats : [ADR 0005](adr/0005-assistant.md), [assistant](assistant.md),

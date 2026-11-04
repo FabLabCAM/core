@@ -1,5 +1,18 @@
 # Notes de version
 
+## Non publié
+
+### Import SVG — [#26](https://github.com/FabLabCAM/core/issues/26)
+
+- Composition des transformations SVG imbriquées et locales avant inversion Y ;
+  conservation des arcs circulaires sous similitude et approximation sous matrice
+  non uniforme.
+- Exclusion des définitions et ressources inutilisées du dessin importé.
+- Lecture des exposants et commandes implicites via `svgtypes`, avec erreur
+  explicite pour les chemins ou transformations invalides.
+- Régressions du moteur et de la CLI, conservation des arcs de fermeture,
+  documentation du périmètre et vérification locale du fichier signalé.
+
 ## 0.7.0 — 2026-11-04
 
 ### Assistant natif — [#20](https://github.com/FabLabCAM/core/issues/20)
