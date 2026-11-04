@@ -629,11 +629,11 @@ checksum = "0b5343afd4a8365a643ac588dab4cf234a190c7f6c88c9f6dd6ffe00837661b7"
 
 [[package]]
 name = "fablabcam-backplot"
-version = "0.6.0"
+version = "0.6.1"
 
 [[package]]
 name = "fablabcam-cam"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "fablabcam-geom",
  "fablabcam-model",
@@ -644,7 +644,7 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-cli"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "fablabcam-backplot",
  "fablabcam-cam",
@@ -658,14 +658,14 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-geom"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "cavalier_contours",
 ]
 
 [[package]]
 name = "fablabcam-model"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "fablabcam-geom",
  "roxmltree",
@@ -673,7 +673,7 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-studio"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "fablabcam-backplot",
  "fablabcam-cam",
@@ -692,7 +692,7 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-view"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "eframe",
  "fablabcam-backplot",

@@ -1,5 +1,32 @@
 # Mémoire de maintenance FabLabCAM
 
+## Version 0.6.1 : validation des identifiants Rhai, issue #19
+
+- Correction commune CLI/Studio dans `script::ids` : convertir les entiers par
+  `u32::try_from`, jamais par `as`. `4294967297` et `-4294967295` visaient la
+  forme 1 dans 0.6.0. Refuser également les membres hors plage d’un tableau.
+- Plage numérique `0..=4294967295` ; l’existence de la forme est vérifiée dans
+  le moteur métier. Les entiers seuls et tableaux gardent la même API ; les
+  flottants, chaînes et booléens ne sont pas des identifiants.
+- Régressions dans les deux fichiers `tests/script_ids.rs` des crates Studio et
+  CLI : dix actions, dépassements et extrêmes, tableaux mixtes, bornes, projet
+  et historique préservés, sortie absente/existante/identique à l’entrée.
+- Les tests de régression ont échoué sur 0.6.0 avant de réussir avec le correctif.
+  Préserver le journal d’erreur avec valeur et ligne ; ne pas accepter une
+  conversion modulo pour tolérer un script incorrect.
+- Références : [QA](qa/0.6.1.md), [issue #19](https://github.com/FabLabCAM/core/issues/19),
+  [release](https://github.com/FabLabCAM/core/releases/tag/v0.6.1) et
+  [guide Rhai](https://fablabcam.github.io/docs/reference/rhai/). Suivre
+  `releasing.md` et vérifier la publication avant clôture.
+- L’éditeur Rhai expose le dessin et les opérations CAO/FAO, pas la composition
+  des meubles. Son exemple prérempli crée des formes sans opération d’usinage.
+
+## Livraison 0.6.0 confirmée
+
+- Release 0.6.0 publique : douze paquets et manifeste SHA-256 contrôlés.
+  PR core #18 et docs #7 intégrées ; guide Pages, six captures et dix exemples
+  vérifiés après publication ; issue #17 clôturée avec les preuves de validation.
+
 ## Version 0.6.0 : éditeur de composition et assemblages, issue #17
 
 - Branche de livraison : `feat/17-furniture-composer`. Références :
