@@ -104,7 +104,7 @@ Les tests de protocole utilisent des serveurs locaux pour les quatre fournisseur
 Le test réel charge `.env` sans en afficher les valeurs. Voir la [QA](qa/0.7.0.md)
 pour distinguer les fournisseurs réellement essayés des simulations de protocole.
 
-## Compatibilité après 0.7.0 (correctif non publié)
+## Compatibilité des fournisseurs en 0.7.2
 
 Les options du transport respectent les capacités de raisonnement : GPT-4.1 et
 GPT-4o ne reçoivent pas de demande de résumé de raisonnement. La continuation
