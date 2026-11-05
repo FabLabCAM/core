@@ -12,6 +12,8 @@ fablabcam-model = { path = "../fablabcam-model" }
 fablabcam-cam = { path = "../fablabcam-cam" }
 fablabcam-backplot = { path = "../fablabcam-backplot" }
 roxmltree = "0.19"
+# SVG grammar (exponents, implicit commands and affine transform lists).
+svgtypes = "=0.16.2"
 # Scripts d'automatisation ; conserver les correctifs du moteur dans Cargo.lock.
 rhai = "1.27.0"
 # Lecture des contours de lettres (texte).
