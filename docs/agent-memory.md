@@ -33,8 +33,10 @@
   reste hors dépôt ; utiliser les cas synthétiques pour la CI.
 - #26 livrée en 0.7.1 ; conserver ses correctifs lors des intégrations suivantes.
 
-## Correctif en cours : arcs dégénérés et préambules G-code, issue #23
+## Correctif validé : arcs dégénérés et préambules G-code, issue #23
 
+- Le 6 novembre 2026, l’utilisateur confirme les fichiers régénérés avec 0.7.1-rc.1
+  fonctionnels sur Mach3. Correctifs livrés dans la stable 0.7.1 ; #23 résolue.
 - Voir [diagnostic et limites](qa/issue-23.md). Initialiser G40/G49/G80 et le
   mode IJ dans les exports intégrés ; le CBPP par défaut suit ArcCenterMode.
 - Préserver les Header CBPP explicites, les origines et les macros M6.
