@@ -192,6 +192,9 @@ fn panic_child() {
         panic!("controlled core diagnostic test");
     }
     if mode == "unwritable" {
+        // Windows forbids moving this directory while its journal is open.
+        // Shutdown releases those handles; the installed panic hook stays active.
+        service.shutdown();
         let moved = service.directory().with_extension("moved");
         std::fs::rename(service.directory(), &moved).unwrap();
         std::fs::write(service.directory(), "not a directory").unwrap();
