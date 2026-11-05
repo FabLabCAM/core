@@ -1,6 +1,6 @@
 # Mémoire de maintenance FabLabCAM
 
-## Version 0.7.2 : compatibilité des fournisseurs — issue #20
+## Version 0.7.3 : compatibilité des fournisseurs — issue #20
 
 - OpenAI : `capture_reasoning_content` dans genai 0.7.3 ajoute à la requête
   `reasoning.summary=detailed`. Désactiver cette option pour GPT-4.1/GPT-4o ;
@@ -25,10 +25,10 @@
 - Essais réels du correctif : GPT-4.1 mini, GPT-5 mini et Claude Haiku 4.5
   passent le parcours caisson/case/Plan/Agent/Rhai/outils/simulation/retour outil.
 - Voir [qualification complémentaire](qa/provider-compatibility.md). Ces correctifs
-  sont destinés aux paquets 0.7.2 ; les versions 0.7.0/0.7.1 restent inchangées.
+  sont destinés aux paquets 0.7.3 ; les versions 0.7.0/0.7.1 restent inchangées.
 - La 0.7.1 existe déjà pour SVG/Mach3 : ne jamais déplacer son tag ni remplacer
   ses paquets. L’intégration conserve ces corrections. Garder #20 ouverte pour
-  les limites Ollama, même après publication de 0.7.2. Voir [QA](qa/0.7.2.md).
+  les limites Ollama, même après publication de 0.7.3. Voir [QA](qa/0.7.3.md).
 
 ## Version 0.7.1 : import SVG, issue #26
 

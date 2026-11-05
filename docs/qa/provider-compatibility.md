@@ -1,10 +1,10 @@
-# Qualification des fournisseurs — correctif 0.7.2
+# Qualification des fournisseurs — correctif 0.7.3
 
 Essais synthétiques du 5 novembre 2026, sur macOS Apple Silicon. Les clés sont
 lues depuis le fichier développeur ignoré ; elles ne sont ni affichées ni incluses
 aux projets ou aux rapports. Les paquets 0.7.0/0.7.1 publiés restent inchangés.
 Les nombres ci-dessous concernent la campagne du 5 novembre, avant intégration
-des corrections SVG/Mach3 ; voir [QA 0.7.2](0.7.2.md) pour la validation intégrée.
+des corrections SVG/Mach3 ; voir [QA 0.7.3](0.7.3.md) pour la validation intégrée.
 
 ## Causes et corrections
 

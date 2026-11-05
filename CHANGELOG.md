@@ -1,6 +1,6 @@
 # Notes de version
 
-## 0.7.2 — 2026-11-06
+## 0.7.3 — 2026-11-06
 
 ### Compatibilité des fournisseurs — #20
 
