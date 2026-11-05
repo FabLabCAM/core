@@ -1,4 +1,4 @@
-//! Lecture d'un programme G-code (dialecte Mach3/GRBL : G0 G1 G2 G3 G4 G17 G20 G21 G80 G81 G82 G83 G90 G91).
+//! Lecture G-code, dont modes de position G90/G91 et de centre G90.1/G91.1 distincts.
 //!
 //! Les codes inconnus sont ignorés et signalés dans `Backplot::warnings` : un backplot qui se tait
 //! sur ce qu'il n'a pas compris serait trompeur.
@@ -88,6 +88,7 @@ struct State {
     feed: f64,
     scale: f64,
     relative: bool,
+    arc_absolute: bool,
     retract: f64,
     drill_z: f64,
     peck: f64,
@@ -98,7 +99,7 @@ struct State {
 /// Lit un programme G-code et reconstruit son trajet.
 pub fn parse_gcode(text: &str) -> Backplot {
     let mut bp = Backplot { source: text.lines().map(str::to_string).collect(), ..Default::default() };
-    let mut st = State { pos: None, xy_known: false, motion: Motion::Rapid, feed: 0.0, scale: 1.0, relative: false, retract: 0.0, drill_z: 0.0, peck: 0.0, plane: 17 };
+    let mut st = State { pos: None, xy_known: false, motion: Motion::Rapid, feed: 0.0, scale: 1.0, relative: false, arc_absolute: false, retract: 0.0, drill_z: 0.0, peck: 0.0, plane: 17 };
     let mut warned: Vec<String> = Vec::new();
     let mut warn = |bp: &mut Backplot, msg: String| {
         if !warned.contains(&msg) {
@@ -112,6 +113,16 @@ pub fn parse_gcode(text: &str) -> Backplot {
         let w = words(&clean(raw));
         let mut canned_cancel = false;
         for &g in &w.g {
+            // Fractional codes must never become another command by truncation:
+            // G91.1 changes IJK only, not the endpoint distance mode (G91).
+            if g == 90.1 || g == 91.1 {
+                st.arc_absolute = g == 90.1;
+                continue;
+            }
+            if g.fract() != 0.0 {
+                warn(&mut bp, format!("ligne {line_no} : G{g} ignoré"));
+                continue;
+            }
             match g as i32 {
                 0 => st.motion = Motion::Rapid,
                 1 => st.motion = Motion::Linear,
@@ -181,12 +192,13 @@ pub fn parse_gcode(text: &str) -> Backplot {
                 // axes du plan (abscisse, ordonnée) et décalages du centre : G18 = (Z, X) avec K, I ;
                 // G19 = (Y, Z) avec J, K ; G3 tourne dans le sens trigonométrique de ce repère
                 let (u, v, du, dv) = if st.plane == 18 { (2, 0, w.k, w.i) } else { (1, 2, w.j, w.k) };
-                if du.is_none() && dv.is_none() {
-                    warn(&mut bp, format!("ligne {line_no} : arc G{} sans centre (I/J/K), tracé en ligne droite", st.plane));
+                if (du.is_none() && dv.is_none()) || (st.arc_absolute && (du.is_none() || dv.is_none())) {
+                    warn(&mut bp, format!("ligne {line_no} : arc G{} sans centre complet (I/J/K), tracé en ligne droite", st.plane));
                     let kind = if (to[0] - from[0]).hypot(to[1] - from[1]) > 1e-9 { Kind::Feed } else { Kind::Plunge };
                     push(&mut bp, kind, from, to, None, false, st.feed, line_no);
                 } else {
-                    let c = (from[u] + du.unwrap_or(0.0) * sc, from[v] + dv.unwrap_or(0.0) * sc);
+                    let base = if st.arc_absolute { [0.; 3] } else { from };
+                    let c = (base[u] + du.unwrap_or(0.0) * sc, base[v] + dv.unwrap_or(0.0) * sc);
                     plane_arc(&mut bp, from, to, (u, v), c, st.motion == Motion::ArcCcw, st.feed, line_no);
                 }
                 st.pos = Some(to);
@@ -200,8 +212,12 @@ pub fn parse_gcode(text: &str) -> Backplot {
                 } else if w.i.is_none() && w.j.is_none() {
                     warn(&mut bp, format!("ligne {line_no} : arc sans I/J, tracé en ligne droite"));
                     push(&mut bp, Kind::Feed, from, to, None, false, st.feed, line_no);
+                } else if st.arc_absolute && (w.i.is_none() || w.j.is_none()) {
+                    warn(&mut bp, format!("ligne {line_no} : centre absolu incomplet (I/J), tracé en ligne droite"));
+                    push(&mut bp, Kind::Feed, from, to, None, false, st.feed, line_no);
                 } else {
-                    let c = [from[0] + w.i.unwrap_or(0.0) * sc, from[1] + w.j.unwrap_or(0.0) * sc];
+                    let base = if st.arc_absolute { [0.; 3] } else { from };
+                    let c = [base[0] + w.i.unwrap_or(0.0) * sc, base[1] + w.j.unwrap_or(0.0) * sc];
                     let (r0, r1) = ((from[0] - c[0]).hypot(from[1] - c[1]), (to[0] - c[0]).hypot(to[1] - c[1]));
                     if (r0 - r1).abs() > 0.01 {
                         warn(&mut bp, format!("ligne {line_no} : arc dont les rayons de départ et d'arrivée diffèrent de {:.3} mm", (r0 - r1).abs()));

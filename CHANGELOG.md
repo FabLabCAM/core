@@ -11,6 +11,54 @@
 - Tests de protocole des options et du refus des réponses vides ; qualifications
   réelles complémentaires détaillées dans `docs/qa/provider-compatibility.md`.
 
+## 0.7.1 — 2026-11-05
+
+Cette version reprend également les corrections Mach3 de 0.7.1-rc.1 décrites
+ci-dessous. Les essais des trois autres fichiers de #23 restent attendus ;
+la publication ne vaut pas qualification d’une machine.
+
+### Import SVG — [#26](https://github.com/FabLabCAM/core/issues/26)
+
+- Composition des transformations SVG imbriquées et locales avant inversion Y ;
+  conservation des arcs circulaires sous similitude et approximation sous matrice
+  non uniforme.
+- Exclusion des définitions et ressources inutilisées du dessin importé.
+- Lecture des exposants et commandes implicites via `svgtypes`, avec erreur
+  explicite pour les chemins ou transformations invalides.
+- Régressions du moteur et de la CLI, conservation des arcs de fermeture,
+  documentation du périmètre et vérification locale du fichier signalé.
+
+## 0.7.1-rc.1 — 2026-11-05
+
+Préversion destinée à la validation Mach3 de #23. Le test utilisateur confirme
+`lyon3.v1` ; les trois autres fichiers restent à vérifier.
+
+### Arcs et initialisation du G-code — [#23](https://github.com/FabLabCAM/core/issues/23)
+
+- Arcs devenant dégénérés après arrondi : subdivision en G1 selon la précision
+  de sortie, commune aux exports intégré et CBPP, avec conservation des cercles
+  représentables et des hélices. Corrige le bloc identifié par les photos Mach3.
+- Validateur : refus d'un rayon final nul même si l'écart entre les rayons est
+  inférieur à la tolérance ; régression du bloc exact affiché ligne 7393.
+- Exports intégrés : annulation des compensations/cycles et déclaration explicite
+  des centres IJ incrémentaux avant mouvement. Le CBPP par défaut déclare la
+  convention de centre configurée ; les en-têtes personnalisés restent prioritaires.
+- Analyse d'arcs : tolérance de rayon adaptée à l'unité active, conformément au
+  manuel Mach3 (0,002 mm ou 0,0002 pouce).
+- Backplot/simulation : G90.1/G91.1 ne sont plus tronqués en G90/G91 ; les centres
+  absolus sont relus dans les trois plans et les codes fractionnaires inconnus
+  sont signalés au lieu d'être interprétés comme une autre commande.
+- Calcul des décalages : normalisation des sommets répétés et redondants avant
+  l'appel au noyau géométrique, sur une copie du contour ; évite les assertions
+  rencontrées lors de la reproduction depuis le DXF de #23.
+- Régressions sur les modes initiaux, mm/pouces et centres absolus ;
+  [diagnostic](docs/qa/issue-23.md). Bloc dégénéré identifié dans trois KO ;
+  retour Mach3 du correctif encore à confirmer. Pour `lyon3.v1`, le refus du
+  premier arc en IJ absolu hérité est reproduit ; G91.1 corrige cette dépendance
+  dans les trois exports, désormais couverts par une régression dédiée.
+- Retour utilisateur du 4 novembre 2026 : la copie de `lyon3.v1` ajoutant seulement
+  G91.1 fonctionne dans Mach3. Confirmation des trois autres KO encore attendue.
+
 ## 0.7.0 — 2026-11-04
 
 ### Assistant natif — [#20](https://github.com/FabLabCAM/core/issues/20)

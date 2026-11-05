@@ -45,7 +45,7 @@ fn gcode_en_pouces() {
     assert!(g.contains("F31.4961"), "avance");
     // post-processeur : {$units} → G20
     let out = inch.gcode_with_post(&fablabcam_cam::PostDef::default());
-    assert!(out.gcode.contains("\nG20 G90 G17\n"), "{}", &out.gcode[..200]);
+    assert!(out.gcode.contains("\nG20 G90 G17 G94 G40 G49 G80 G91.1\n"), "{}", &out.gcode[..200]);
     // sauvegarde
     let back = persist::load(&persist::save(&p)).unwrap();
     assert!(back.gcode_inches);
