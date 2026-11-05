@@ -1,6 +1,6 @@
 # Mémoire de maintenance FabLabCAM
 
-## Version 0.7.1 : crash et diagnostics, issue #24
+## Version 0.7.2 : crash et diagnostics, issue #24
 
 - Cause isolée : forme #12 du DXF, E fermé de 13 sommets dont le dernier répète
   le premier. Offset ±1,5 mm : panique release à `pline_offset.rs:714`.
@@ -8,7 +8,7 @@
   La normalisation est commune avec #23 / PR #25, intégrée depuis main :
   préserver cette implémentation unique avec les correctifs Mach3 associés.
 - Service `studio::diagnostics`, UI `diagnostics_ui`, [ADR 0006](adr/0006-diagnostics.md)
-  et [QA](qa/0.7.1.md). Les erreurs de calcul sont récupérées avant winit ; les
+  et [QA](qa/0.7.2.md). Les erreurs de calcul sont récupérées avant winit ; les
   aperçus précédents restent visibles, mais `check_cam_export` refuse leur export.
 - Piles capturées sans dépendre de RUST_BACKTRACE, réglages atomiques/persistants,
   hook sans verrou du journal et fichiers exclusifs pour préserver la première
@@ -20,6 +20,18 @@
 - La distribution et la publication du guide restent à faire après les PR et
   contrôles de `releasing.md`. Garder #24 ouverte jusqu'à cette vérification.
 
+
+## Version 0.7.1 : import SVG, issue #26
+
+- `svgio` sépare parcours XML, grammaire `svgtypes`, transformations et export.
+  Composer parent × local avant l'inversion Y ; exclure les sous-arbres de ressources.
+- Préserver les arcs sous similitude et le sens sous miroir ; aplatir les arcs sous
+  matrice non uniforme. Ne pas effacer le bulge du segment fermant un sous-chemin.
+- Les erreurs de grammaire annulent l'import ; effets/références non supportés
+  restent signalés. La convention historique des unités n'est pas modifiée.
+- [Architecture et limites](svg-import.md), [QA](qa/issue-26.md). Le logo utilisateur
+  reste hors dépôt ; utiliser les cas synthétiques pour la CI.
+- #26 livrée en 0.7.1 ; conserver ses correctifs lors des intégrations suivantes.
 
 ## Correctif en cours : arcs dégénérés et préambules G-code, issue #23
 

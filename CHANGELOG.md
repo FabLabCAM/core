@@ -1,6 +1,6 @@
 # Notes de version
 
-## 0.7.1 — 2026-11-05
+## 0.7.2 — 2026-11-06
 
 ### Profils DXF et diagnostics — [#24](https://github.com/FabLabCAM/core/issues/24)
 
@@ -14,14 +14,28 @@
   du noyau, des limites et du disque ; compilation de diagnostic et dSYM séparés.
 - Tests de non-régression, capture contrôlée relue dans LLDB et guide actualisé.
 
-### Correctifs Mach3 repris de 0.7.1-rc.1 — #23
-
-- Préambules IJ explicites, subdivision des arcs dégénérés après arrondi et
-  distinction de G90.1/G91.1 dans la relecture. Voir la préversion ci-dessous.
-- `lyon3.v1` validé par l'utilisateur ; les trois autres cas Mach3 restent à
-  confirmer. L'issue #23 reste ouverte et aucune CNC n'est qualifiée par ces tests.
 - Portabilité du test de rapport de panne : fermeture des handles avant de
   remplacer son dossier sur Windows, sans désinstaller le gestionnaire de panique.
+
+Cette version conserve les correctifs SVG et Mach3 de 0.7.1. Les trois essais
+Mach3 encore attendus restent suivis dans #23.
+
+## 0.7.1 — 2026-11-05
+
+Cette version reprend également les corrections Mach3 de 0.7.1-rc.1 décrites
+ci-dessous. Les essais des trois autres fichiers de #23 restent attendus ;
+la publication ne vaut pas qualification d’une machine.
+
+### Import SVG — [#26](https://github.com/FabLabCAM/core/issues/26)
+
+- Composition des transformations SVG imbriquées et locales avant inversion Y ;
+  conservation des arcs circulaires sous similitude et approximation sous matrice
+  non uniforme.
+- Exclusion des définitions et ressources inutilisées du dessin importé.
+- Lecture des exposants et commandes implicites via `svgtypes`, avec erreur
+  explicite pour les chemins ou transformations invalides.
+- Régressions du moteur et de la CLI, conservation des arcs de fermeture,
+  documentation du périmètre et vérification locale du fichier signalé.
 
 ## 0.7.1-rc.1 — 2026-11-05
 

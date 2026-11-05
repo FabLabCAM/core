@@ -123,6 +123,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arrayvec"
+version = "0.7.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
+
+[[package]]
 name = "as-raw-xcb-connection"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1207,6 +1213,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b5343afd4a8365a643ac588dab4cf234a190c7f6c88c9f6dd6ffe00837661b7"
 
 [[package]]
+name = "euclid"
+version = "0.22.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1a05365e3b1c6d1650318537c7460c6923f1abdd272ad6842baa2b509957a06"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "event-listener"
 version = "5.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1228,11 +1243,11 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-backplot"
-version = "0.7.1"
+version = "0.7.2"
 
 [[package]]
 name = "fablabcam-cam"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "fablabcam-geom",
  "fablabcam-model",
@@ -1243,7 +1258,7 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-cli"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "fablabcam-backplot",
  "fablabcam-cam",
@@ -1257,14 +1272,14 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-geom"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "cavalier_contours",
 ]
 
 [[package]]
 name = "fablabcam-model"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "fablabcam-geom",
  "roxmltree",
@@ -1272,7 +1287,7 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-studio"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "dotenvy",
  "fablabcam-backplot",
@@ -1291,6 +1306,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "svgtypes",
  "tempfile",
  "tokio",
  "ttf-parser 0.20.0",
@@ -1299,7 +1315,7 @@ dependencies = [
 
 [[package]]
 name = "fablabcam-view"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "eframe",
  "egui_commonmark",
@@ -2168,6 +2184,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
+name = "kurbo"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b60dfc32f652b926df6192e55525b16d186c69d47876c3ead4da5cc9f8450e2"
+dependencies = [
+ "arrayvec",
+ "euclid",
+ "polycool",
+ "smallvec",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2879,6 +2907,15 @@ dependencies = [
  "pin-project-lite",
  "rustix 1.1.6",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "polycool"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50596ddc09eb5ad5f75cacd40209568e66df71baf86e1499a0e99c4cff12a5a6"
+dependencies = [
+ "arrayvec",
 ]
 
 [[package]]
@@ -3813,6 +3850,16 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
+
+[[package]]
+name = "svgtypes"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f12b12995e3638c70618c1facb1ce65302f6a6f706b675f07c58a5d7391120e"
+dependencies = [
+ "kurbo",
+ "siphasher",
+]
 
 [[package]]
 name = "syn"
