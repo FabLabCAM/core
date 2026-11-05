@@ -3,8 +3,9 @@
 ## 0.7.1 — 2026-11-05
 
 Cette version reprend également les corrections Mach3 de 0.7.1-rc.1 décrites
-ci-dessous. Les essais des trois autres fichiers de #23 restent attendus ;
-la publication ne vaut pas qualification d’une machine.
+ci-dessous. Le 6 novembre 2026, l’utilisateur confirme que les fichiers régénérés
+avec 0.7.1-rc.1 fonctionnent sur Mach3 ; le blocage de #23 est résolu.
+Ce retour ne constitue pas une qualification générale de la machine.
 
 ### Import SVG — [#26](https://github.com/FabLabCAM/core/issues/26)
 
