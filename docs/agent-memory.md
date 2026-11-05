@@ -1,6 +1,6 @@
 # Mémoire de maintenance FabLabCAM
 
-## Correctif SVG #26 — non publié
+## Version 0.7.1 : import SVG, issue #26
 
 - `svgio` sépare parcours XML, grammaire `svgtypes`, transformations et export.
   Composer parent × local avant l'inversion Y ; exclure les sous-arbres de ressources.

@@ -1,6 +1,10 @@
 # Notes de version
 
-## Non publié
+## 0.7.1 — 2026-11-05
+
+Cette version reprend également les corrections Mach3 de 0.7.1-rc.1 décrites
+ci-dessous. Les essais des trois autres fichiers de #23 restent attendus ;
+la publication ne vaut pas qualification d’une machine.
 
 ### Import SVG — [#26](https://github.com/FabLabCAM/core/issues/26)
 
