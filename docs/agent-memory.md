@@ -1,13 +1,12 @@
 # Mémoire de maintenance FabLabCAM
 
-## Version 0.7.1 en préparation : crash et diagnostics, issue #24
+## Version 0.7.1 : crash et diagnostics, issue #24
 
 - Cause isolée : forme #12 du DXF, E fermé de 13 sommets dont le dernier répète
   le premier. Offset ±1,5 mm : panique release à `pline_offset.rs:714`.
   Nettoyer une copie dans geom, préserver les bulges sortants et le dessin.
-  La PR #25 de l'issue #23 contient la même normalisation ; éviter un doublon
-  divergent lors de son intégration. Les corrections de format Mach3 restent
-  hors du périmètre #24.
+  La normalisation est commune avec #23 / PR #25, intégrée depuis main :
+  préserver cette implémentation unique avec les correctifs Mach3 associés.
 - Service `studio::diagnostics`, UI `diagnostics_ui`, [ADR 0006](adr/0006-diagnostics.md)
   et [QA](qa/0.7.1.md). Les erreurs de calcul sont récupérées avant winit ; les
   aperçus précédents restent visibles, mais `check_cam_export` refuse leur export.
@@ -21,6 +20,33 @@
 - La distribution et la publication du guide restent à faire après les PR et
   contrôles de `releasing.md`. Garder #24 ouverte jusqu'à cette vérification.
 
+
+## Correctif en cours : arcs dégénérés et préambules G-code, issue #23
+
+- Voir [diagnostic et limites](qa/issue-23.md). Initialiser G40/G49/G80 et le
+  mode IJ dans les exports intégrés ; le CBPP par défaut suit ArcCenterMode.
+- Préserver les Header CBPP explicites, les origines et les macros M6.
+- Le validateur applique les tolérances d'arc documentées pour G20/G21.
+- Le backplot doit distinguer G90.1/G91.1 de G90/G91, y compris dans les autres
+  plans et en pouces. Ne jamais tronquer un G-code fractionnaire en entier.
+- Avant offset, utiliser `remove_redundant` du noyau avec sa tolérance : les
+  splines DXF peuvent produire des sommets répétés et des microsegments alignés.
+  Normaliser une copie ; préserver les bulges et le dessin importé.
+- Photos reçues : Mach3 refuse `projet_test002`, ligne affichée 7393 (physique
+  7394), car l'arrivée coïncide avec le centre après arrondi. Trois KO ont chacun
+  38 rayons finaux nuls. Le contrôle initial omettait le rayon final : ne pas
+  confondre un écart sous tolérance et un arc non dégénéré. LF reste admis.
+- Les deux émetteurs contrôlent les coordonnées formatées et partagent la
+  subdivision des arcs dégénérés ; conserver cercles réels, arcs majeurs et Z.
+- `lyon3.v1` : aucun arc nul/hors tolérance. En IJ absolu hérité, le premier
+  arc (ligne physique 145) est refusé ; G91.1 seul supprime l'erreur de lecture
+  dans l'analyse complète, sans changer aucun mouvement. Régression CAM/Studio/CBPP.
+- Retour utilisateur du 2026-11-04 : la copie IJ seule de `lyon3.v1` fonctionne
+  dans Mach3. L'ajout de G91.1 résout donc son blocage signalé. Le mode IJ initial
+  et le détail de l'essai n'ont pas été relevés ; aucune CNC pilotée par l'agent.
+- TODO(agent) : obtenir le retour ARCS_A_TESTER des trois autres KO et terminer
+  la livraison avant clôture. Ne pas étendre la validation de `lyon3.v1` aux
+  autres fichiers. Courses et origine restent inconnues.
 
 ## Version 0.7.0 : assistant natif, issue #20
 

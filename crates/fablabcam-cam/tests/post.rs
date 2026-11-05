@@ -38,7 +38,7 @@ fn default_definition_produces_a_complete_program() {
     assert_eq!(
         lines(&out),
         [
-            "( piece )", "( T1 : 6 )", "G21 G90 G17", "G0 Z3", "( T1 : 6 )", "T1 M6", "( Découpe )", "M3 S1000", "G0 X0 Y0", "G0 Z0", "G1 F300 Z-1", "F800 X10", "Y10", "Y20",
+            "( piece )", "( T1 : 6 )", "G21 G90 G17 G94 G40 G49 G80 G91.1", "G0 Z3", "( T1 : 6 )", "T1 M6", "( Découpe )", "M3 S1000", "G0 X0 Y0", "G0 Z0", "G1 F300 Z-1", "F800 X10", "Y10", "Y20",
             "G0 Z3", "M5", "M30"
         ]
     );
@@ -192,7 +192,7 @@ fn line_numbers_skip_comments_and_follow_increment() {
     let l: Vec<&str> = g.lines().collect();
     // commentaires non numérotés et sans consommer de numéro
     assert_eq!(l[0], "( piece )");
-    assert_eq!(l[2], "N10 G21 G90 G17");
+    assert_eq!(l[2], "N10 G21 G90 G17 G94 G40 G49 G80 G91.1");
     assert_eq!(l[3], "N20 G0 Z3");
     assert!(l.last().unwrap().starts_with('N') && l.last().unwrap().ends_with("M30"));
     // numéros strictement croissants de 10 en 10
@@ -207,7 +207,7 @@ fn line_number_format_prefix_start_and_space() {
     let (path, p) = (square_path(), Params::default());
     let run = |ln: LineNumbering| render_post(&numbered(ln), &prog(vec![mop("a", tool(1, 3.0), &path, &p)])).gcode;
     let g = run(LineNumbering { format: "0000".into(), start: 5, increment: 1, ..LineNumbering::default() });
-    assert!(g.contains("\nN0005 G21 G90 G17\nN0006 G0 Z3\n"), "{g}");
+    assert!(g.contains("\nN0005 G21 G90 G17 G94 G40 G49 G80 G91.1\nN0006 G0 Z3\n"), "{g}");
     let g = run(LineNumbering { format: "####".into(), start: 98, increment: 1, ..LineNumbering::default() });
     assert!(g.contains("\nN  98 G21") && g.contains("\nN  99 G0") && g.contains("\nN 100 "), "{g}");
     let g = run(LineNumbering { format: "###0".into(), start: 3, space_after: false, prefix: "L".into(), skip: "(".into(), ..LineNumbering::default() });

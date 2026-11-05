@@ -266,7 +266,7 @@ fn build_post_numerotation_et_arcs_en_lignes() {
     std::fs::write(p("ln.cbpp"), "<PostProcessor><AddLineNumbers>true</AddLineNumbers><LineNumberFormat>0000</LineNumberFormat><ArcOutput>ConvertToLines</ArcOutput></PostProcessor>").unwrap();
     run(&["build", &p("demo.cb"), "--post", &p("ln.cbpp"), "-o", &p("o.nc")]).unwrap();
     let g = std::fs::read_to_string(p("o.nc")).unwrap();
-    assert!(g.contains("\nN0010 G21 G90 G17\n"), "{g}");
+    assert!(g.contains("\nN0010 G21 G90 G17 G94 G40 G49 G80 G91.1\n"), "{g}");
     let words = |g: &str| g.split_whitespace().map(str::to_string).collect::<Vec<_>>();
     assert!(!words(&g).iter().any(|w| w == "G2" || w == "G3" || w.starts_with('I')), "arcs restants");
     // sans conversion, la démo contient bien des arcs

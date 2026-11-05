@@ -354,7 +354,7 @@ impl Studio {
     pub fn gcode(&self) -> String {
         let p = self.project();
         let k = if p.gcode_inches { 1.0 / 25.4 } else { 1.0 };
-        let mut out = format!("(FabLabCAM studio)\n{} G90 G17 G94\n", if p.gcode_inches { "G20" } else { "G21" });
+        let mut out = format!("(FabLabCAM studio)\n{}\n", fablabcam_cam::gcode::milling_preamble(p.gcode_inches));
         let mut current: Option<&str> = None;
         let mut current_part: Option<&str> = None;
         let mut any = false;
