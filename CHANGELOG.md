@@ -4,8 +4,8 @@
 
 ### Profils DXF et diagnostics — [#24](https://github.com/FabLabCAM/core/issues/24)
 
-- Suppression des sommets répétés sur une copie avant les offsets : corrige le
-  crash du profil des 19 formes, sans modifier le dessin ni ses arcs.
+- Régressions pour les contours à fermeture répétée : la normalisation livrée
+  en 0.7.1 évite le crash des 19 formes sans modifier le dessin ni ses arcs.
 - Une panique du calcul est convertie en erreur ; le projet reste éditable et
   un parcours obsolète ne peut plus servir à un export natif/CLI du projet.
 - Outils → Préférences → Diagnostics : niveau Normal/Détaillé, piles complètes,
@@ -17,8 +17,8 @@
 - Portabilité du test de rapport de panne : fermeture des handles avant de
   remplacer son dossier sur Windows, sans désinstaller le gestionnaire de panique.
 
-Cette version conserve les correctifs SVG et Mach3 de 0.7.1. Les trois essais
-Mach3 encore attendus restent suivis dans #23.
+Cette version conserve les correctifs SVG et Mach3 de 0.7.1. Le 6 novembre,
+l’utilisateur confirme les fichiers régénérés fonctionnels dans Mach3 : #23 est résolue.
 
 ## 0.7.1 — 2026-11-05
 
