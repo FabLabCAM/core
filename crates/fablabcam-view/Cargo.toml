@@ -33,7 +33,7 @@ egui_commonmark = { version = "=0.11.0", default-features = false }
 
 # même version que celle de winit 0.29 : rien de nouveau n'est téléchargé
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2 = "=0.4.1"
+objc2 = "=0.6.5"
 
 # eframe 0.25 utilise winapi sans en activer les fonctions nécessaires sous Windows
 [target.'cfg(windows)'.dependencies]

@@ -1326,7 +1326,7 @@ dependencies = [
  "fablabcam-model",
  "fablabcam-studio",
  "nix 0.26.4",
- "objc2 0.4.1",
+ "objc2 0.6.5",
  "serde_json",
  "winapi",
 ]
