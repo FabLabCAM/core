@@ -20,6 +20,7 @@ concurrency:
 
 env:
   CARGO_PROFILE_RELEASE_STRIP: symbols
+  FABLABCAM_BUILD_ID: ${{ github.sha }}
 
 jobs:
   notices:

@@ -248,7 +248,7 @@ Les références sont comparées par calcul géométrique séparé ; leurs préa
 ne satisfont pas toutes les exigences du profil de diagnostic. Aucun de ces
 résultats n'est une qualification machine.
 
-## Validation restante
+## Validation demandée avant le retour final
 
 Recharger `projet_test002.ARCS_A_TESTER.nc` dans Mach3 et vérifier la disparition
 de l'erreur d'arc pendant la lecture, sans lancer l'usinage. Consigner le résultat
@@ -256,3 +256,13 @@ pour les trois fichiers concernés. La copie IJ dédiée de `lyon3.v1` est déj�
 confirmée fonctionnelle par l'utilisateur. Les copies précédentes `MODES_A_TESTER` sont
 insuffisantes pour corriger le bloc photographié. La validation des paramètres
 et de l'usinage reste distincte ; aucune nouvelle version n'est publiée ici.
+
+## Validation utilisateur du 6 novembre 2026
+
+L’utilisateur confirme que les fichiers régénérés avec **0.7.1-rc.1** fonctionnent
+sur Mach3 et demande la clôture de #23. Ce retour complète celui de lyon3.v1 et
+valide la résolution du blocage signalé. Les correctifs sont déjà inclus dans la
+[version stable 0.7.1](https://github.com/FabLabCAM/core/releases/tag/v0.7.1).
+Le retour concerne les exports régénérés, pas les anciennes copies de diagnostic.
+Le détail du cycle exécuté n’est pas précisé ; les paramètres physiques et la
+qualification générale de la machine restent hors du périmètre de cette issue.

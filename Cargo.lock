@@ -1297,6 +1297,7 @@ dependencies = [
  "futures-util",
  "genai",
  "keyring",
+ "libc",
  "pdf-writer",
  "reqwest",
  "rhai",

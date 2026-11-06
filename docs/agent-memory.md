@@ -25,10 +25,32 @@
 - Essais réels du correctif : GPT-4.1 mini, GPT-5 mini et Claude Haiku 4.5
   passent le parcours caisson/case/Plan/Agent/Rhai/outils/simulation/retour outil.
 - Voir [qualification complémentaire](qa/provider-compatibility.md). Ces correctifs
-  sont destinés aux paquets 0.7.3 ; les versions 0.7.0/0.7.1 restent inchangées.
+  sont destinés aux paquets 0.7.3 ; les versions 0.7.0/0.7.1/0.7.2 restent inchangées.
 - La 0.7.1 existe déjà pour SVG/Mach3 : ne jamais déplacer son tag ni remplacer
-  ses paquets. L’intégration conserve ces corrections. Garder #20 ouverte pour
+  ses paquets. La 0.7.2 ajoute les diagnostics ; la 0.7.3 conserve ces deux
+  livraisons et leurs régressions. Garder #20 ouverte pour
   les limites Ollama, même après publication de 0.7.3. Voir [QA](qa/0.7.3.md).
+
+## Version 0.7.2 : crash et diagnostics, issue #24
+
+- Cause isolée : forme #12 du DXF, E fermé de 13 sommets dont le dernier répète
+  le premier. Offset ±1,5 mm : panique release à `pline_offset.rs:714`.
+  Nettoyer une copie dans geom, préserver les bulges sortants et le dessin.
+  La normalisation est commune avec #23 / PR #25, intégrée depuis main :
+  préserver cette implémentation unique avec les correctifs Mach3 associés.
+- Service `studio::diagnostics`, UI `diagnostics_ui`, [ADR 0006](adr/0006-diagnostics.md)
+  et [QA](qa/0.7.2.md). Les erreurs de calcul sont récupérées avant winit ; les
+  aperçus précédents restent visibles, mais `check_cam_export` refuse leur export.
+- Piles capturées sans dépendre de RUST_BACKTRACE, réglages atomiques/persistants,
+  hook sans verrou du journal et fichiers exclusifs pour préserver la première
+  panne. Ne jamais activer les logs globaux des clients IA dans ce journal.
+- Core désactivé à chaque lancement ; `get-task-allow` seulement dans un bundle
+  diagnostic distinct. Sur Apple Silicon, RLIMIT_CORE teste la mémoire virtuelle,
+  pas seulement la taille finale du fichier. Ne pas réintroduire un plafond de
+  1 Gio qui rend la capture inopérante. Ne pas partager automatiquement un core.
+- La distribution et la publication du guide restent à faire après les PR et
+  contrôles de `releasing.md`. Garder #24 ouverte jusqu'à cette vérification.
+
 
 ## Version 0.7.1 : import SVG, issue #26
 
@@ -40,10 +62,12 @@
   restent signalés. La convention historique des unités n'est pas modifiée.
 - [Architecture et limites](svg-import.md), [QA](qa/issue-26.md). Le logo utilisateur
   reste hors dépôt ; utiliser les cas synthétiques pour la CI.
-- Garder #26 ouverte jusqu'à la distribution vérifiée, suivant `releasing.md`.
+- #26 livrée en 0.7.1 ; conserver ses correctifs lors des intégrations suivantes.
 
-## Correctif en cours : arcs dégénérés et préambules G-code, issue #23
+## Correctif validé : arcs dégénérés et préambules G-code, issue #23
 
+- Le 6 novembre 2026, l’utilisateur confirme les fichiers régénérés avec 0.7.1-rc.1
+  fonctionnels sur Mach3. Correctifs livrés dans la stable 0.7.1 ; #23 résolue.
 - Voir [diagnostic et limites](qa/issue-23.md). Initialiser G40/G49/G80 et le
   mode IJ dans les exports intégrés ; le CBPP par défaut suit ArcCenterMode.
 - Préserver les Header CBPP explicites, les origines et les macros M6.
