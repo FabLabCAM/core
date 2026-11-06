@@ -68,14 +68,14 @@ pub fn outset(p: &Pline, distance: f64) -> Vec<Pline> {
     offset_without_redundant_vertices(&ccw(p), -distance)
 }
 
-/// DXF spline tessellation may repeat positions or subdivide a straight segment.
-/// The offset kernel requires distinct vertices and is unstable on redundant
-/// tiny segments. Use its own tolerance and bulge-preserving normalization on a
-/// copy, without modifying the imported drawing.
+/// ARCHITECTURE NOTE — DXF contours can repeat the closing vertex and contain
+/// aligned microsegments. Normalize a copy with the kernel's tolerance before
+/// offsetting; otherwise cavalier_contours 0.3 can build NaN bounds (#24).
+/// Shared with the normalization prepared for issue #23.
 fn offset_without_redundant_vertices(p: &Pline, distance: f64) -> Vec<Pline> {
     let options = PlineOffsetOptions::default();
-    // In cavalier_contours 0.3, remove_redundant alone can collapse a short
-    // contour starting with a repeated position. Remove repeats first.
+    // remove_redundant alone can collapse a short contour starting with a
+    // repeated position in 0.3. Remove repeats first, retaining outgoing bulges.
     let distinct = p.remove_repeat_pos(options.pos_equal_eps);
     let contour = distinct.as_ref().unwrap_or(p);
     let cleaned = contour.remove_redundant(options.pos_equal_eps);

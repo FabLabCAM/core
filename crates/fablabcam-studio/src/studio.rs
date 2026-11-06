@@ -147,10 +147,41 @@ pub fn op_params(p: &Project, op: &Operation) -> Result<Params, String> {
 
 /// Calcule la trajectoire d'une opération.
 pub fn compute_op(p: &Project, op: &Operation) -> Result<(Toolpath, Params), String> {
+    use crate::diagnostics;
+    use serde_json::json;
+    let started = std::time::Instant::now();
+    diagnostics::record(true, "operation_start", json!({"operation_id": op.id, "kind": op.kind.label(), "shape_count": op.shapes.len()}));
+    // The kernel only receives immutable input and builds temporary output.
+    // Contain an unexpected upstream unwind before it reaches winit's locked
+    // callback; discard every partial path. The panic hook still records it.
+    let result = std::panic::catch_unwind(|| compute_op_inner(p, op))
+        .unwrap_or_else(|_| Err(format!("Opération #{} : erreur interne du calcul géométrique ; consultez le rapport de diagnostic", op.id)));
+    diagnostics::record(result.is_ok(), "operation_end", json!({
+        "operation_id": op.id, "success": result.is_ok(), "elapsed_ms": started.elapsed().as_millis(),
+        "moves": result.as_ref().map(|(path, _)| path.moves.len()).ok(),
+        "error": result.as_ref().err(),
+    }));
+    result
+}
+
+fn compute_op_inner(p: &Project, op: &Operation) -> Result<(Toolpath, Params), String> {
     let params = op_params(p, op)?;
     let ents: Vec<&Entity> = op.shapes.iter().filter_map(|i| p.shape(*i)).map(|s| &s.entity).collect();
     if ents.is_empty() {
         return Err("aucune forme rattachée à l'opération".into());
+    }
+    for id in &op.shapes {
+        if let Some(contour) = p.shape(*id).and_then(|s| shape::pline(&s.entity)) {
+            use fablabcam_geom::PlineSource;
+            if contour.iter_vertexes().any(|v| !v.x.is_finite() || !v.y.is_finite() || !v.bulge.is_finite()) {
+                return Err(format!("Forme #{id} : coordonnées non finies, calcul refusé"));
+            }
+            crate::diagnostics::record(true, "contour_input", serde_json::json!({
+                "operation_id": op.id, "shape_id": id, "vertices": contour.vertex_count(),
+                "closed": contour.is_closed(), "side": format!("{:?}", op.side),
+                "tool_diameter_mm": params.tool_diameter, "wall_offset_mm": params.wall_offset(),
+            }));
+        }
     }
     let plines = || -> Vec<Pline> { ents.iter().filter_map(|e| shape::pline(e)).collect() };
     let path = match op.kind {
@@ -228,6 +259,19 @@ impl Studio {
 
     pub fn project(&self) -> &Project {
         &self.editor.project
+    }
+
+    /// Cached previews may show the previous valid path after a failed edit;
+    /// never treat that cache as a valid new export.
+    pub fn check_computed(&self) -> Result<(), String> {
+        for op in self.project().ops.iter().filter(|op| op.enabled) {
+            match self.computed.get(&op.id) {
+                Some(Computed { error: Some(error), .. }) => return Err(format!("Opération #{} : {error}", op.id)),
+                Some(Computed { path: Some(_), .. }) => {},
+                _ => return Err(format!("Opération #{} : trajectoire absente", op.id)),
+            }
+        }
+        Ok(())
     }
 
     /// Modification annulable suivie d'un recalcul.

@@ -2,7 +2,17 @@ use fablabcam_geom::{self as geom, PlineSource};
 
 #[test]
 fn offsets_accept_repeated_dxf_positions_without_changing_the_drawing() {
-    let shape = geom::pline_from(&[(0., 0., 0.), (0., 0., 0.), (10., 0., 0.), (10., 10., 0.), (0., 10., 0.), (0., 0., 0.)], true);
+    let shape = geom::pline_from(
+        &[
+            (0., 0., 0.),
+            (0., 0., 0.),
+            (10., 0., 0.),
+            (10., 10., 0.),
+            (0., 10., 0.),
+            (0., 0., 0.),
+        ],
+        true,
+    );
     let clean = geom::rectangle(0., 0., 10., 10.);
     for offset in [geom::inset, geom::outset] {
         let got = offset(&shape, 1.);
