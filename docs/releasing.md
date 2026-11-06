@@ -28,3 +28,5 @@ ouverte pendant la validation de distribution ; la fermeture suit la publication
 Le suivi est maintenu dans Git, sans publication automatique de fonctionnalités
 non livrées. Les problèmes connus restent des issues ouvertes ; les tests ne
 remplacent pas une qualification de machine réelle.
+
+Signature macOS : voir [prérequis et politique Developer ID](assistant-credentials.md#signature-de-distribution). Les paquets de PR restent ad hoc ; ne pas annoncer une notarisation non effectuée.

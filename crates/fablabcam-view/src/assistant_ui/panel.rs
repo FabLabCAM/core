@@ -31,6 +31,7 @@ impl AssistantUi {
                         |ui| {
                             for p in Provider::ALL {
                                 if ui.selectable_value(&mut self.session.provider, p, p.label()).changed() {
+                                    self.forget_credentials();
                                     self.prepared = None;
                                     self.plan = None;
                                     self.last_reply = None;

@@ -97,6 +97,8 @@ jobs:
         with:
           name: third-party-notices
           path: target/notices
+      - name: Signing policy tests
+        run: python -m unittest discover -s packaging -p "test_*.py"
       - name: Native installers and portable archives
         run: python packaging/package.py --target ${{ matrix.target }} --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
       - name: Verify Debian installation

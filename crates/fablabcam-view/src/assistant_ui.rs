@@ -3,6 +3,7 @@ mod bridge;
 mod connection;
 mod panel;
 mod message;
+mod credentials;
 use eframe::egui;
 use fablabcam_studio::assistant::{
     self, provider::TurnResult, worker::Job, Connection, ContextSnapshot, Plan, PreparedPlan, Session, Workspace,
@@ -33,6 +34,7 @@ pub struct AssistantUi {
     settings: bool,
     secret: String,
     secret_identity: String,
+    credentials: credentials::SessionCredentials,
     plan: Option<Plan>,
     prepared: Option<PreparedPlan>,
     last_reply: Option<Box<TurnResult>>,
@@ -77,6 +79,7 @@ impl AssistantUi {
             settings: false,
             secret: String::new(),
             secret_identity: String::new(),
+            credentials: Default::default(),
             plan: None,
             prepared: None,
             last_reply: None,
@@ -103,14 +106,26 @@ impl AssistantUi {
         let ctx = ctx.clone();
         Arc::new(move || ctx.request_repaint())
     }
-    fn key(&self, c: &Connection) -> Result<String, String> {
-        if self.secret_identity == c.identity() && !self.secret.is_empty() {
+    fn key(&mut self, c: &Connection) -> Result<String, String> {
+        if self.secret_identity != c.identity() {
+            self.forget_credentials();
+            self.secret_identity = c.identity();
+        }
+        if !self.secret.is_empty() {
             return Ok(self.secret.clone());
         }
+        let result = self.credentials.get(&c.identity(), || assistant::storage::secret(c));
         if c.provider == assistant::Provider::Ollama {
-            return assistant::storage::secret(c).or_else(|_| Ok(String::new()));
+            result.or_else(|_| Ok(String::new()))
+        } else {
+            result
         }
-        assistant::storage::secret(c)
+    }
+
+    fn forget_credentials(&mut self) {
+        use zeroize::Zeroize;
+        self.secret.zeroize();
+        self.credentials.clear();
     }
     fn stop(&mut self) {
         self.job = None;
@@ -178,5 +193,11 @@ impl AssistantUi {
                 }
             }
         }
+    }
+}
+
+impl Drop for AssistantUi {
+    fn drop(&mut self) {
+        self.forget_credentials();
     }
 }
