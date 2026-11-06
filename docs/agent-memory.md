@@ -16,7 +16,8 @@
   échouent ; préserver le schéma simple et la saillance de la case sélectionnée.
 - Qualification ciblée réelle : Qwen3 1.7B et Qwen2.5 3B, contexte 16384,
   division verticale en deux puis horizontale en trois et retours natifs réussis.
-  Suite workspace : 438 réussis, 2 réseau ignorés ; Clippy strict réussi.
+  Après intégration de main 0.8.0 : 441 tests workspace réussis, 2 réseau
+  ignorés ; Clippy strict réussi.
 - Parcours global final Qwen3 : création/division réussies, puis `replace_script`
   sans plan typé (échec en 41,56 s). Ne pas déclarer le catalogue complet validé.
 - Voir [qualification et limites](qa/ollama-division.md). #20 reste ouverte pour

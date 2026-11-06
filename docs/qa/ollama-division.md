@@ -58,7 +58,7 @@ ignorés par défaut ne sont pas comptés comme réussis dans la suite hors rés
 
 ## Résultats du 6 novembre 2026
 
-- Suite workspace : **438 tests réussis**, 0 échec, 2 tests réseau ignorés par
+- Suite workspace après intégration de main 0.8.0 : **441 tests réussis**, 0 échec, 2 tests réseau ignorés par
   défaut. Clippy workspace/toutes cibles avec `-D warnings` réussi.
 - Tests de protocole : **12 réussis**, dont 4 nouveaux sur la division native,
   les paramètres invalides, le catalogue/mode et le refus du texte libre.
@@ -84,3 +84,13 @@ schéma ont aussi produit une mauvaise division lors des demandes naturelles ;
 les résultats finaux doivent être distingués de ces essais. Les demandes et
 objets restent à relire dans l’aperçu. L’issue #20 reste ouverte ; pas de
 qualification CNC ni d’essai avec Internet physiquement déconnecté.
+
+## Synchronisation avec 0.8.0
+
+Les PR #32 / docs #16 ont été intégrées pendant cette campagne. Leurs nouveautés
+de copie de messages et leur documentation sont conservées. La suite workspace
+et Clippy ont été entièrement rejoués après fusion de main. Les fichiers du
+transport et du test local Ollama sont identiques à ceux des essais réels ci-dessus ;
+ces essais n’ont pas été répétés pour les seuls changements de version et d’UI.
+La documentation synchronisée passe MkDocs strict et le contrôle de ses 37 pages,
+liens, ancres et version 0.8.0 ; le rendu du complément Ollama a été revérifié.
