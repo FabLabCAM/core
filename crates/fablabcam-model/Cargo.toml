@@ -8,4 +8,4 @@ repository.workspace = true
 
 [dependencies]
 fablabcam-geom = { path = "../fablabcam-geom" }
-roxmltree = "0.19"
+roxmltree = "0.21"
