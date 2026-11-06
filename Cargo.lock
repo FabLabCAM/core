@@ -456,11 +456,13 @@ dependencies = [
 
 [[package]]
 name = "cavalier_contours"
-version = "0.3.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "375248e2ec3db2d828f8db3ae83d13084a21f4da782e2f8a7611bed1e6bdc5d8"
+checksum = "85e06038a969c5e4d93565f12b044814d3b1a48d50c4ef868d588e79956fea51"
 dependencies = [
+ "ahash",
  "num-traits",
+ "smallvec",
  "static_aabb2d_index",
 ]
 
@@ -3805,9 +3807,9 @@ dependencies = [
 
 [[package]]
 name = "static_aabb2d_index"
-version = "0.7.1"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7205a33a9f0d3d62dbd4a4a29e59b30bcf0f45b58724c9ab184ebb645ded8a7f"
+checksum = "7a753368e4dd146a347d0ea692f0f8a37df18df7eee5659d36dd75eb287c6454"
 dependencies = [
  "num-traits",
 ]
