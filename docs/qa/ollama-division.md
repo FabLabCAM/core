@@ -1,6 +1,6 @@
 # Ollama : division d’une case — issue #20
 
-Correctif en préparation après 0.7.3, non inclus dans ses installateurs.
+Correctif en préparation après 0.8.0, non inclus dans les installateurs 0.7.3 ou 0.8.0.
 
 ## Diagnostic et choix
 

@@ -9,6 +9,13 @@
 - Tests de protocole et parcours local de division avec un petit modèle ;
   qualification et limites dans `docs/qa/ollama-division.md`.
 
+## 0.8.0 — 2026-11-06
+
+### Réutilisation des messages — #31
+
+- Assistant : copier un message complet, sélectionner un extrait du texte source
+  et ajouter une réponse au prompt sans écraser la saisie ni envoyer de requête.
+
 ## 0.7.3 — 2026-11-06
 
 ### Compatibilité des fournisseurs — #20

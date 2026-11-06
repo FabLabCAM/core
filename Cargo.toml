@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/fablabcam-geom", "crates/fablabcam-model", "crates/fablabcam-cam", "crates/fablabcam-backplot", "crates/fablabcam-cli", "crates/fablabcam-view", "crates/fablabcam-studio"]
 
 [workspace.package]
-version = "0.7.3"
+version = "0.8.0"
 edition = "2021"
 rust-version = "1.89"
 license = "Apache-2.0"
