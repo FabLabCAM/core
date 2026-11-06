@@ -11,7 +11,7 @@ impl AssistantUi {
         let mut c = self.session.connection();
         let identity = c.identity();
         if self.secret_identity != identity {
-            self.secret.clear();
+            self.forget_credentials();
             self.secret_identity = identity.clone();
         }
         egui::Window::new("Connexion de l'assistant").open(&mut open).default_width(440.0).show(ctx, |ui| {
@@ -21,17 +21,28 @@ impl AssistantUi {
                 ui.text_edit_singleline(&mut c.model);
                 ui.label("Adresse du service");
                 ui.text_edit_singleline(&mut c.endpoint);
+                if c.identity() != identity {
+                    self.forget_credentials();
+                }
                 ui.small("Seul ce fournisseur reçoit les éléments cochés. Aucun repli automatique vers un autre service.");
                 if c.provider == Provider::Ollama {
                     ui.small("Ollama doit être démarré et le modèle déjà installé. HTTP est permis sur votre réseau local.");
                     ui.small("Configurez num_ctx à 16384 ou davantage dans le modèle Ollama pour conserver le catalogue et le contexte du projet. Les longues conversations peuvent demander plus de mémoire.");
                 }
                 ui.label("Clé API pour cette session");
-                ui.add(
+                if ui.add(
                     egui::TextEdit::singleline(&mut self.secret).password(true).hint_text("Clé du coffre ou de l'environnement si vide"),
-                );
+                ).changed() {
+                    self.credentials.clear();
+                }
+                ui.small("La clé lue dans le coffre reste en mémoire pour cette connexion jusqu’à la fermeture ou son oubli explicite.");
+                if ui.button("Oublier la clé de cette session").clicked() {
+                    self.forget_credentials();
+                    self.message = "Clé oubliée en mémoire ; le prochain envoi relira le coffre ou l’environnement".into();
+                }
                 ui.horizontal_wrapped(|ui| {
                     if ui.button("Enregistrer dans le coffre système").clicked() {
+                        self.credentials.clear();
                         self.message = match storage::save_secret(&c, &self.secret) {
                             Ok(()) => "Clé enregistrée dans le coffre système".into(),
                             Err(e) => e,
@@ -42,7 +53,7 @@ impl AssistantUi {
                             Ok(()) => "Clé retirée du coffre ; une variable d'environnement peut encore être active".into(),
                             Err(e) => e,
                         };
-                        self.secret.clear();
+                        self.forget_credentials();
                     }
                 });
                 ui.small(format!("Variable reconnue : {}. La clé n'est jamais enregistrée dans la conversation.", c.provider.env()));
@@ -74,7 +85,7 @@ impl AssistantUi {
         });
         if c.identity() != identity {
             c.tools = false;
-            self.secret.clear();
+            self.forget_credentials();
             self.secret_identity = c.identity();
             self.prepared = None;
             self.plan = None;
