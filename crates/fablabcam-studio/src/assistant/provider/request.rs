@@ -1,4 +1,4 @@
-use super::Connection;
+use super::{Connection, Provider};
 use crate::assistant::{ContextSnapshot, Entry, Mode, Plan};
 use genai::chat::{ChatMessage, ChatRequest, Tool};
 
@@ -18,7 +18,14 @@ pub fn request(
     if mode == Mode::Agent && !connection.tools {
         return Err("Vérifiez les appels d'outils du modèle dans Connexion avant Agent".into());
     }
-    let mut messages = vec![ChatMessage::system(format!("{SYSTEM}\nMode actuel : {mode:?}."))];
+    // Small local models can confuse action discriminators with function names.
+    // Spell out the wire envelope without relaxing typed deserialization/validation.
+    let tool_guidance = if connection.provider == Provider::Ollama && mode != Mode::Ask && connection.tools {
+        r#"Le seul nom de fonction disponible est submit_plan. create_cabinet, replace_script et les autres types sont des valeurs de action.type, jamais des noms de fonctions. Les arguments de submit_plan ont exactement la structure {"title":"...","assumptions":[],"missing":[],"steps":[{"explanation":"...","action":{"type":"..."}}]}. Les paramètres métier appartiennent à action, pas à steps."#
+    } else {
+        ""
+    };
+    let mut messages = vec![ChatMessage::system(format!("{SYSTEM}\nMode actuel : {mode:?}.\n{tool_guidance}"))];
     let start = history.len().saturating_sub(20);
     for entry in &history[start..] {
         let text = format!("[Échange antérieur, page {}, révision {}]\n{}", entry.page, entry.revision, entry.text);

@@ -54,6 +54,7 @@ async fn real_providers_agent_cabinet_roundtrip() {
         let prompt="Propose exactement une action create_cabinet via submit_plan : name Caisson test, width 600 mm, depth 400 mm, height 800 mm, thickness 18 mm, shelves 2, back true. Toutes les informations sont fournies. N'ajoute aucune autre action.";
         let request = provider::request(&c, Mode::Agent, &context, &[], prompt).unwrap();
         let reply = provider::chat(&c, &secret, request, Mode::Agent, |_| {}).await.unwrap_or_else(|e| panic!("{} : {e}", p.label()));
+        println!("{} : création du caisson reçue", p.label());
         let plan = reply.plan.clone().unwrap_or_else(|| panic!("{} : aucun plan typé", p.label()));
         assert_eq!(plan.steps.len(), 1, "{} : lot inattendu", p.label());
         let prepared = actions::prepare(&w, &context, plan, Mode::Agent, Arc::new(AtomicBool::new(false))).unwrap();
@@ -64,6 +65,7 @@ async fn real_providers_agent_cabinet_roundtrip() {
         let request=reply.continuation("Lot validé dans un projet de test isolé : caisson 600 × 400 × 800, 7 panneaux. Résume en une phrase ; aucun autre appel d'outil.").unwrap();
         let done =
             provider::chat(&c, &secret, request, Mode::Agent, |_| {}).await.unwrap_or_else(|e| panic!("{} retour outil : {e}", p.label()));
+        println!("{} : retour outil reçu", p.label());
         assert!(done.plan.is_none());
         assert!(!done.text.is_empty());
         let mut w = prepared.after;
@@ -120,6 +122,7 @@ async fn propose(c: &Connection, secret: &str, w: &Workspace, mode: Mode, prompt
     let context = live_context(w);
     let request = provider::request(c, mode, &context, &[], prompt).unwrap();
     let reply = provider::chat(c, secret, request, mode, |_| {}).await.unwrap();
+    println!("{} : proposition {:?} reçue", c.provider.label(), mode);
     let plan = reply.plan.expect("Plan typé attendu");
     let prepared = actions::prepare(w, &context, plan, mode, Arc::new(AtomicBool::new(false))).unwrap();
     actions::authorize(&prepared, w, &context, Mode::Agent, false).unwrap();

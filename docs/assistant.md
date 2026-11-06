@@ -103,3 +103,19 @@ FABLABCAM_TEST_PROVIDER=Mistral cargo test --locked -p fablabcam-studio \
 Les tests de protocole utilisent des serveurs locaux pour les quatre fournisseurs.
 Le test réel charge `.env` sans en afficher les valeurs. Voir la [QA](qa/0.7.0.md)
 pour distinguer les fournisseurs réellement essayés des simulations de protocole.
+
+## Compatibilité des fournisseurs en 0.7.3
+
+Les options du transport respectent les capacités de raisonnement : GPT-4.1 et
+GPT-4o ne reçoivent pas de demande de résumé de raisonnement. La continuation
+des modèles de raisonnement conserve leurs métadonnées natives. Ollama reçoit
+`think:false` et une température nulle en Plan/Agent. Une consigne précise
+le format `submit_plan` / `steps[].action.type` sans changer le catalogue ni
+accepter de texte libre comme outil ; une fin sans texte ni outil produit un diagnostic de capacité.
+Le contexte par défaut Ollama de 4096 tokens tronque les requêtes avec meuble ;
+configurer un modèle dédié avec `PARAMETER num_ctx 16384`. genai 0.7.3 ne transmet
+pas `extra_body` pour Ollama ; ce réglage se fait dans le Modelfile, pas dans les
+options de génération du Studio. Les longues conversations peuvent dépasser cette
+capacité et nécessitent un contexte plus grand et davantage de mémoire.
+Le support annoncé des outils par un modèle ne garantit pas la réussite du
+catalogue FabLabCAM. Voir la [qualification complémentaire](qa/provider-compatibility.md).
