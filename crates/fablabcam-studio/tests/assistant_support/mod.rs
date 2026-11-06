@@ -1,3 +1,4 @@
+mod division;
 use fablabcam_studio::assistant::{context::ContextMeta, Connection, ContextOptions, ContextSnapshot, Provider, Workspace};
 use serde_json::{json, Value};
 use std::{

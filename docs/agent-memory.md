@@ -1,5 +1,27 @@
 # Mémoire de maintenance FabLabCAM
 
+## En préparation : division Ollama — issue #20
+
+- `provider::ollama_division` adapte un appel natif simple vers le Plan métier,
+  sans exécuter ni réparer de texte libre. Uniquement Ollama Plan/Agent, outils
+  activés, cases feuilles présentes dans le contexte explicitement partagé.
+- Conserver les trois paramètres obligatoires, le refus des champs inconnus,
+  le contrôle du catalogue annoncé, l’atomicité, les révisions et la confirmation.
+- Le titre et l’explication de la division sont générés depuis ses paramètres ;
+  les autres propositions conservent `submit_plan`. Aucun retry automatique.
+- Transport : `cell_id`, `layout` (`side_by_side` / `stacked`) et `count`.
+  Le booléen vertical/horizontal est ambigu pour le petit modèle ; conserver
+  ces noms explicites et leur conversion métier, ainsi que l’énumération inline.
+- Les premières variantes imposant les métadonnées du Plan au petit modèle
+  échouent ; préserver le schéma simple et la saillance de la case sélectionnée.
+- Qualification ciblée réelle : Qwen3 1.7B et Qwen2.5 3B, contexte 16384,
+  division verticale en deux puis horizontale en trois et retours natifs réussis.
+  Suite workspace : 438 réussis, 2 réseau ignorés ; Clippy strict réussi.
+- Parcours global final Qwen3 : création/division réussies, puis `replace_script`
+  sans plan typé (échec en 41,56 s). Ne pas déclarer le catalogue complet validé.
+- Voir [qualification et limites](qa/ollama-division.md). #20 reste ouverte pour
+  les autres limites Ollama ; ce correctif ne figure pas dans les paquets 0.7.3.
+
 ## Version 0.7.3 : compatibilité des fournisseurs — issue #20
 
 - OpenAI : `capture_reasoning_content` dans genai 0.7.3 ajoute à la requête
@@ -48,8 +70,8 @@
   diagnostic distinct. Sur Apple Silicon, RLIMIT_CORE teste la mémoire virtuelle,
   pas seulement la taille finale du fichier. Ne pas réintroduire un plafond de
   1 Gio qui rend la capture inopérante. Ne pas partager automatiquement un core.
-- La distribution et la publication du guide restent à faire après les PR et
-  contrôles de `releasing.md`. Garder #24 ouverte jusqu'à cette vérification.
+- 0.7.2 publiée, core #27 et docs #11 fusionnées ; #24 clôturée après
+  vérification des six distributions, du guide et des téléchargements publics.
 
 
 ## Version 0.7.1 : import SVG, issue #26

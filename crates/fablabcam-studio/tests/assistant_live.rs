@@ -71,7 +71,9 @@ async fn real_providers_agent_cabinet_roundtrip() {
         let mut w = prepared.after;
         let doc = w.furniture.as_ref().unwrap();
         let cell = furniture::structure(doc.dimensions()).unwrap().cells.into_iter().find(|c| c.leaf).unwrap().id;
-        let divided=propose(&c,&secret,&w,Mode::Agent,&format!("Divise uniquement la case {cell} en deux cases verticales égales via divide_cell, vertical true, count 2. Ne modifie rien d'autre. missing doit être [].")).await;
+        let divided=propose(&c,&secret,&w,Mode::Agent,&format!("Divise uniquement la case {cell} en deux cases de même largeur, côte à côte. Ne modifie rien d'autre. Toutes les informations sont fournies.")).await;
+        assert!(matches!(&divided.plan.steps[0].action,
+            fablabcam_studio::assistant::Action::DivideCell { cell_id, vertical: true, count: 2 } if cell_id == &cell));
         w = divided.after;
         assert_eq!(furniture::structure(w.furniture.as_ref().unwrap().dimensions()).unwrap().panels.len(), 8);
         let edited=propose(&c,&secret,&w,Mode::Plan,"Remplace uniquement le texte du script par circle(10,10,2.0); via replace_script. N'exécute pas le script. Aucun paramètre ne manque.").await;
