@@ -1,5 +1,13 @@
 # Notes de version
 
+## En préparation — clés de session / #20
+
+- Conserver la clé du coffre en mémoire pour éviter les demandes répétées sur
+  chaque requête ; oubli explicite et invalidation lors des changements de connexion.
+- Préparer la signature macOS Developer ID avec contrôles de l’identité, sans
+  annoncer son activation avant installation du certificat et validation réelle.
+
+
 ## 0.8.0 — 2026-11-06
 
 ### Réutilisation des messages — #31

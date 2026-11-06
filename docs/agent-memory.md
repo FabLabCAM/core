@@ -1,5 +1,20 @@
 # Mémoire de maintenance FabLabCAM
 
+## En préparation : clés de session et signature macOS — #20
+
+- Cache non sérialisé d’une seule connexion dans `assistant_ui/credentials.rs` ;
+  invalider lors des changements et de l’oubli, ne jamais journaliser sa valeur.
+- Une erreur de coffre n’est pas mise en cache. Les clones HTTP restent en mémoire ;
+  ne pas promettre un effacement de toutes les copies par `Zeroizing`.
+- Signature Developer ID optionnelle dans `packaging/macos_signing.py`, sans repli
+  silencieux si exigée. CI PR ad hoc inchangée, aucun secret ajouté au workflow.
+- Création réelle bloquée par Apple : compte Admin, Account Holder requis.
+  Ne pas annoncer de release Developer ID ou notarisation avant validation réelle.
+- Validation locale : 440 tests Rust, Clippy strict, trois tests de signature
+  et bundle synthétique ad hoc réussis ; guide strict/37 pages/rendu vérifiés.
+- Voir [décisions et vérification](assistant-credentials.md).
+
+
 ## Version 0.8.0 : réutilisation des messages — issue #31
 
 - Actions locales par message : Copier (Markdown brut), Ajouter au prompt

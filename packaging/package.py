@@ -12,12 +12,14 @@ import shutil
 import subprocess
 import tarfile
 import tomllib
+from macos_signing import configuration, sign
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--target", required=True)
 parser.add_argument("--platform", choices=["macos", "windows", "linux"], required=True)
 parser.add_argument("--arch", choices=["x64", "arm64"], required=True)
 args = parser.parse_args()
+signing = configuration(os.environ) if args.platform == "macos" else None
 root = pathlib.Path(__file__).resolve().parents[1]
 os.chdir(root)
 version = tomllib.loads((root / "Cargo.toml").read_text())["workspace"]["package"]["version"]
@@ -40,7 +42,7 @@ shutil.copytree(root / "profiles", work / "profiles")
     "Documentation: https://fablabcam.github.io/docs/\n"
     "Source: https://github.com/FabLabCAM/core\n\n"
     "Apache-2.0; dependencies retain their licenses. See THIRD-PARTY-LICENSES.html.\n"
-    "Packages are not commercially signed or notarized.\n", encoding="utf-8")
+    + ("macOS: Developer ID signed; not notarized.\n" if signing else "Packages are not commercially signed or notarized.\n"), encoding="utf-8")
 
 def run(*command):
     subprocess.run([str(c) for c in command], check=True)
@@ -72,8 +74,7 @@ if args.platform == "macos":
                 LSApplicationCategoryType="public.app-category.graphics-design")
     info["CFBundleDocumentTypes"] = [dict(CFBundleTypeName="FabLabCAM drawing", CFBundleTypeExtensions=["cb", "dxf", "svg"], CFBundleTypeRole="Editor", LSHandlerRank="Alternate")]
     (contents / "Info.plist").write_bytes(plistlib.dumps(info))
-    run("codesign", "--force", "--deep", "--sign", "-", app)
-    run("codesign", "--verify", "--deep", "--strict", app)
+    sign(app, signing)
     run("ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", work, out / f"{name}.zip")
     os.symlink("/Applications", work / "Applications")
     run("hdiutil", "create", "-volname", f"FabLabCAM {version}", "-srcfolder", work, "-ov", "-format", "UDZO", out / f"{name}.dmg")
