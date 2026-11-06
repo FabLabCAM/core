@@ -2,6 +2,7 @@
 mod bridge;
 mod connection;
 mod panel;
+mod message;
 use eframe::egui;
 use fablabcam_studio::assistant::{
     self, provider::TurnResult, worker::Job, Connection, ContextSnapshot, Plan, PreparedPlan, Session, Workspace,

@@ -1,5 +1,18 @@
 # Mémoire de maintenance FabLabCAM
 
+## Version 0.8.0 : réutilisation des messages — issue #31
+
+- Actions locales par message : Copier (Markdown brut), Ajouter au prompt
+  (préserve le brouillon, aucun envoi), Texte sélectionnable (source immuable).
+- `assistant_ui/message.rs` utilise le presse-papiers natif egui/eframe ; ne pas
+  désactiver le TextEdit en lecture seule, cela empêcherait la sélection.
+- Le focus texte doit conserver la priorité sur les raccourcis de dessin.
+- Aucun changement de protocole fournisseur, de session ni de format `.cb`.
+- Voir [usage et décisions](assistant-text.md) et [validation](qa/0.8.0.md).
+- La release mineure 0.8.0 conserve les correctifs 0.7.1–0.7.3. Ne pas déplacer
+  les tags précédents. Les limites Ollama de #20 restent ouvertes.
+
+
 ## Version 0.7.3 : compatibilité des fournisseurs — issue #20
 
 - OpenAI : `capture_reasoning_content` dans genai 0.7.3 ajoute à la requête

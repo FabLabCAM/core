@@ -103,7 +103,7 @@ impl AssistantUi {
                     }
                     for (index, entry) in self.session.entries.iter().enumerate() {
                         egui::Frame::group(ui.style()).show(ui, |ui| {
-                            ui.strong(if entry.user { "Vous" } else { "Assistant" });
+                            super::message::actions(ui, index, entry.user, &entry.text, &mut self.prompt);
                             if entry.user {
                                 ui.label(&entry.text);
                             } else {
