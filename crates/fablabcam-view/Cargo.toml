@@ -41,4 +41,4 @@ winapi = { version = "0.3.9", features = ["winuser", "windef"] }
 
 # wayland-cursor 0.31.0 (épinglé pour Cargo 1.75) utilise nix sans en activer les fonctions de fichiers
 [target.'cfg(target_os = "linux")'.dependencies]
-nix = { version = "0.26", default-features = false, features = ["fs", "mman"] }
+nix = { version = "0.31", default-features = false, features = ["fs", "mman"] }
