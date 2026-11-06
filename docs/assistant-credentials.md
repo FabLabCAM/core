@@ -38,11 +38,18 @@ sur un runner de release de confiance reste à faire. La notarisation est distin
 et n’est pas annoncée comme réalisée. Les autorisations des anciens paquets ad hoc
 peuvent demander une nouvelle confirmation lors du premier passage à Developer ID.
 
-Au 6 novembre 2026, la création dans Xcode est **bloquée par Apple** : le compte
-connecté a le rôle Admin et l’opération exige Account Holder. Aucun Developer ID
-n’a été créé ni utilisé. Le titulaire doit créer le certificat et sa clé privée,
-puis les installer sur le poste de signature. Ne pas remplacer cela par un
-certificat Apple Development ni élargir les permissions du trousseau.
+Le 6 novembre 2026, le blocage de création a été résolu : Xcode utilisait une
+équipe différente du portail Apple Developer. Le certificat Developer ID de
+l’équipe autorisée est créé et installé avec sa clé privée dans le trousseau.
+La copie temporaire en clair de la clé générée pour le CSR a été retirée après
+vérification d’une signature réelle. Aucun certificat ou secret n’est dans Git.
+
+Une copie QA du bundle 0.8.0 ARM64 a été signée par le helper de packaging :
+les trois exécutables et le bundle passent `codesign --verify --deep --strict`,
+l’autorité Developer ID, l’équipe, les identifiants, le runtime et le timestamp
+sont vérifiés. Sa CLI exécute `version` avec succès. Ni l’application installée
+ni les assets de release publiés n’ont été remplacés. Le certificat expire le
+6 décembre 2027 ; prévoir son renouvellement avec la même équipe.
 
 [Exigences de signature Apple](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements/)
 · [Certificats Developer ID](https://developer.apple.com/help/account/certificates/create-developer-id-certificates/).
@@ -52,8 +59,9 @@ certificat Apple Development ni élargir les permissions du trousseau.
 Tests hors réseau du cache : lecture unique, oubli, changement de connexion,
 erreur, absence et nouvelle session. Tests Python de la politique de signature :
 refus de repli, identifiants stables, ordre et rejet de mauvaise équipe/autorité.
-Ces tests simulés ne prouvent pas encore une signature Developer ID réelle ni
-la conservation de l’autorisation du trousseau entre deux versions distribuées.
+La signature réelle est maintenant vérifiée comme décrit ci-dessus. La
+conservation de l’autorisation du trousseau entre deux versions distribuées
+reste à qualifier, ainsi que la notarisation et le provisionnement CI.
 
 Validation locale : 440 tests workspace réussis, un test réseau ignoré ; Clippy
 strict réussi. Trois tests Python réussis et signature/vérification ad hoc réelle

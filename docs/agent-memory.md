@@ -8,8 +8,10 @@
   ne pas promettre un effacement de toutes les copies par `Zeroizing`.
 - Signature Developer ID optionnelle dans `packaging/macos_signing.py`, sans repli
   silencieux si exigée. CI PR ad hoc inchangée, aucun secret ajouté au workflow.
-- Création réelle bloquée par Apple : compte Admin, Account Holder requis.
-  Ne pas annoncer de release Developer ID ou notarisation avant validation réelle.
+- Certificat Developer ID créé et installé le 6 novembre 2026 avec la bonne
+  équipe Apple ; l’erreur Xcode venait d’une autre équipe. Signature réelle des
+  trois exécutables et du bundle 0.8.0 ARM64 vérifiée, CLI exécutée.
+  Notarisation et provisionnement CI restent à faire ; aucune release remplacée.
 - Validation locale : 440 tests Rust, Clippy strict, trois tests de signature
   et bundle synthétique ad hoc réussis ; guide strict/37 pages/rendu vérifiés.
 - Voir [décisions et vérification](assistant-credentials.md).
