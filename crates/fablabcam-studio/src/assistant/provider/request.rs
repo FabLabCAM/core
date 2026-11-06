@@ -25,7 +25,17 @@ pub fn request(
     } else {
         ""
     };
-    let mut messages = vec![ChatMessage::system(format!("{SYSTEM}\nMode actuel : {mode:?}.\n{tool_guidance}"))];
+    let division = (connection.provider == Provider::Ollama && mode != Mode::Ask && connection.tools)
+        .then(|| super::ollama_division::tool(context)).flatten();
+    let division_guidance = if division.is_some() {
+        "Pour une division seule : utilise directement l'outil natif divide_cell disponible, uniquement avec cell_id, layout (side_by_side ou stacked) et count. Il propose le même lot pour validation humaine. N'utilise pas submit_plan pour cette division seule."
+    } else { "" };
+    // Keep the qualified prompt unchanged when this contextual extension is absent.
+    let system = format!("{SYSTEM}\nMode actuel : {mode:?}.\n{tool_guidance}");
+    let system = if division.is_some() {
+        format!("{}\n{division_guidance}", system.replace("Le seul nom de fonction disponible est submit_plan.", "Les outils disponibles sont submit_plan et divide_cell."))
+    } else { system };
+    let mut messages = vec![ChatMessage::system(system)];
     let start = history.len().saturating_sub(20);
     for entry in &history[start..] {
         let text = format!("[Échange antérieur, page {}, révision {}]\n{}", entry.page, entry.revision, entry.text);
@@ -34,7 +44,9 @@ pub fn request(
     messages.push(ChatMessage::user(format!("Contexte explicitement transmis :\n{}\n\nDemande :\n{prompt}", context.data)));
     let mut request = ChatRequest::new(messages).with_store(false);
     if mode != Mode::Ask && connection.tools {
-        request = request.with_tools(vec![plan_tool()]);
+        let mut tools = vec![plan_tool()];
+        if let Some(tool) = division { tools.push(tool); }
+        request = request.with_tools(tools);
     }
     if serde_json::to_vec(&request).map_err(|_| "Requête invalide")?.len() > 256_000 {
         return Err("Conversation trop volumineuse : désactivez l'historique transmis ou réduisez le contexte".into());

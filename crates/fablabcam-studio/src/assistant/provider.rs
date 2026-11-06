@@ -1,4 +1,5 @@
 //! Explicit provider routing. A model name never selects a different endpoint.
+mod ollama_division;
 mod request;
 mod stream;
 use genai::{

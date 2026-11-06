@@ -83,10 +83,15 @@ fn finish(provider: Provider, request: ChatRequest, mode: Mode, text: String, en
     let mut plan = None;
     let mut call_id = None;
     if let Some(call) = calls.first() {
-        if mode == Mode::Ask || call.fn_name != "submit_plan" {
+        let advertised = request.tools.as_ref().is_some_and(|tools| tools.iter().any(|t| t.name.as_str() == call.fn_name));
+        if mode == Mode::Ask || !advertised {
             return Err("Appel d'outil refusé par le mode ou le catalogue".into());
         }
-        plan = Some(serde_json::from_value::<Plan>(call.fn_arguments.clone()).map_err(|_| "Arguments du plan invalides")?);
+        plan = Some(match call.fn_name.as_str() {
+            "submit_plan" => serde_json::from_value::<Plan>(call.fn_arguments.clone()).map_err(|_| "Arguments du plan invalides")?,
+            "divide_cell" if provider == Provider::Ollama => super::ollama_division::plan(call.fn_arguments.clone())?,
+            _ => return Err("Appel d'outil refusé par le mode ou le catalogue".into()),
+        });
         call_id = Some(call.call_id.clone());
     }
     if text.is_empty() && plan.is_none() {

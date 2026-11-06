@@ -119,3 +119,11 @@ options de génération du Studio. Les longues conversations peuvent dépasser c
 capacité et nécessitent un contexte plus grand et davantage de mémoire.
 Le support annoncé des outils par un modèle ne garantit pas la réussite du
 catalogue FabLabCAM. Voir la [qualification complémentaire](qa/provider-compatibility.md).
+
+## Division Ollama en préparation
+
+Après 0.7.3, un outil natif `divide_cell` à trois paramètres est adapté en Plan
+à une étape. Il est annoncé uniquement si le contexte partagé contient des cases
+feuilles et que Plan/Agent dispose des outils. Les autres lots conservent
+`submit_plan`. La proposition n’applique rien : préparation, contrôles de contexte
+et confirmation humaine restent obligatoires. Voir [les essais et limites](qa/ollama-division.md).

@@ -1,5 +1,14 @@
 # Notes de version
 
+## En préparation — Ollama / #20
+
+- Proposer la division d’une case par un outil natif Ollama à paramètres simples,
+  converti en plan soumis aux validations et à la confirmation existantes.
+- Restreindre les appels aux outils réellement annoncés ; conserver les retours
+  natifs et refuser tout JSON libre comme substitut d’appel.
+- Tests de protocole et parcours local de division avec un petit modèle ;
+  qualification et limites dans `docs/qa/ollama-division.md`.
+
 ## 0.8.0 — 2026-11-06
 
 ### Réutilisation des messages — #31
